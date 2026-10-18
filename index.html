@@ -347,10 +347,10 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     ? 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec' : '';
   // 每次加上時間參數、不用快取：手機會記住 Google 的轉址，過一陣子轉址失效就變成 HTTP 404
   const src = (f) => DATA_BASE ? DATA_BASE + '?f=' + f + '&t=' + Date.now() : f + '.txt';
-  // 抓資料：每次最多等 25 秒，失敗自動再試 2 次；有回報下載進度，卡在哪一步看得出來
+  // 抓資料：每次最多等 90 秒（Apps Script 偶爾要 30 秒以上才回），失敗自動再試 2 次；有回報下載進度，卡在哪一步看得出來
   const getText = (f, onStep, n = 0) => {
     const ac = window.AbortController ? new AbortController() : null;
-    const timer = ac ? setTimeout(() => ac.abort(), 25000) : 0;
+    const timer = ac ? setTimeout(() => ac.abort(), 90000) : 0;
     if (onStep) onStep('連線中（第 ' + (n + 1) + ' 次）');
     return fetch(src(f), { cache: 'no-store', signal: ac ? ac.signal : undefined }).then(async r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -380,8 +380,9 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   const cacheSave = (k, txt) => DATA_BASE ? idb('readwrite', st => st.put({ txt, at: Date.now() }, k)).catch(() => {}) : Promise.resolve();
   const cacheLoad = (k) => DATA_BASE ? idb('readonly', st => st.get(k)).catch(() => null) : Promise.resolve(null);
 
-  getText('stock').then(txt => { cacheSave('stock', txt); return txt; })
-    .catch(() => cacheLoad('stock').then(c => (c && c.txt) || '')).then(txt => {
+  const atText = (t) => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  const parseStock = (txt) => {
+    stock.clear();
     for (const ln of txt.split('\n')) {
       if (!ln) continue;
       const p = ln.split('\t');
@@ -391,9 +392,9 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     stockReady = true;
     const old = $('result').querySelector('.label .stock');
     if (shownItem && old) old.replaceWith(stockHtml(shownItem));
-  }).catch(() => {});
-
-  const parseData = (txt) => {
+  };
+  const parseData = (txt, again) => {
+    items.clear(); barcodes.clear(); quick.length = 0;
     const lines = txt.split('\n');
     let inBc = false, inQuick = false;
     for (const ln of lines) {
@@ -414,6 +415,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     list = Array.from(items.values()).map(p => [p, (p[0] + ' ' + p[1] + ' ' + p[2]).toLowerCase()]);
     ready = true;
     setStatus('已載入 ' + fmt(items.size) + ' 個品號，可以開始掃。');
+    if (again) return;
     renderRecent();
     renderQuick();
     if (!$('paneQuote').hidden) renderQuote();
@@ -422,19 +424,20 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     const pendingKw = $('kw').value.trim();
     if (!pending && pendingKw) searchName(pendingKw);
   };
-  getText('data', (step) => { if (!ready) setStatus('價格資料' + step + '…'); })
-    .then(txt => { parseData(txt); cacheSave('data', txt); })
-    .catch(async err => {
-      const c = await cacheLoad('data');
-      if (c && c.txt) {
-        parseData(c.txt);
-        const d = new Date(c.at);
-        setStatus('網路抓不到最新價格（' + err.message + '），先用這支手機 ' + (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') + ' 存的資料。', true);
-        return;
-      }
-      $('dataDate').textContent = '價格資料沒有載入';
-      setStatus('價格資料載入失敗（' + err.message + '）。請重新整理頁面再試。', true);
-    });
+  // 先用手機上次存的資料（馬上能用），同時在背景抓最新的；抓到就換掉
+  cacheLoad('stock').then(c => { if (c && c.txt && !stockReady) parseStock(c.txt); });
+  getText('stock').then(txt => { parseStock(txt); cacheSave('stock', txt); }).catch(() => {});
+  cacheLoad('data').then(c => {
+    const old = c && c.txt ? c : null;
+    if (old) { parseData(old.txt); setStatus('已載入 ' + fmt(items.size) + ' 個品號（手機 ' + atText(old.at) + ' 存的），正在更新最新價格…'); }
+    return getText('data', (step) => { if (!ready) setStatus('價格資料' + step + '…'); })
+      .then(txt => { parseData(txt, !!old); cacheSave('data', txt); })
+      .catch(err => {
+        if (old) { setStatus('網路抓不到最新價格（' + err.message + '），先用這支手機 ' + atText(old.at) + ' 存的資料。', true); return; }
+        $('dataDate').textContent = '價格資料沒有載入';
+        setStatus('價格資料載入失敗（' + err.message + '）。請重新整理頁面再試。', true);
+      });
+  });
 
   // ---------- 查詢 ----------
   function findByCode(code) {
