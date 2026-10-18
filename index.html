@@ -345,9 +345,15 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   // 放在 claude.ai 時照舊讀同一個網址底下的 data.txt／stock.txt。
   const DATA_BASE = /\.github\.io$/.test(location.hostname)
     ? 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec' : '';
-  const src = (f) => DATA_BASE ? DATA_BASE + '?f=' + f : f + '.txt';
+  // 每次加上時間參數、不用快取：手機會記住 Google 的轉址，過一陣子轉址失效就變成 HTTP 404
+  const src = (f) => DATA_BASE ? DATA_BASE + '?f=' + f + '&t=' + Date.now() : f + '.txt';
+  // 失敗自動再試 2 次（間隔 1.5、3 秒）
+  const getText = (f, n = 0) => fetch(src(f), { cache: 'no-store' }).then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }).catch(e => n < 2 ? new Promise(ok => setTimeout(ok, 1500 * (n + 1))).then(() => getText(f, n + 1)) : Promise.reject(e));
   if (DATA_BASE) setStatus('價格資料載入中，約 5 秒…');
-  fetch(src('stock'), { cache: 'no-cache' }).then(r => r.ok ? r.text() : '').then(txt => {
+  getText('stock').catch(() => '').then(txt => {
     for (const ln of txt.split('\n')) {
       if (!ln) continue;
       const p = ln.split('\t');
@@ -359,10 +365,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     if (shownItem && old) old.replaceWith(stockHtml(shownItem));
   }).catch(() => {});
 
-  fetch(src('data'), { cache: 'no-cache' }).then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.text();
-  }).then(txt => {
+  getText('data').then(txt => {
     const lines = txt.split('\n');
     let inBc = false, inQuick = false;
     for (const ln of lines) {
