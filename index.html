@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>天掌門市查價</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one narrow column built like a shelf price label — scan bar on top, the label below, recent scans under it */
+:root {
+  --bg: #F2F3EF;
+  --surface: #FFFFFF;
+  --fg: #1B1F1D;
+  --muted: #5D6761;
+  --line: #D8DBD4;
+  --tag: #FFD84A;
+  --tag-ink: #1B1F1D;
+  --accent: #0F5C4C;
+  --accent-ink: #FFFFFF;
+  --warn: #A3331F;
+  --warn-bg: #FBE3DD;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-num: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121513; --surface: #1B1F1C; --fg: #ECEFEA; --muted: #9AA59E; --line: #2F3530;
+    --tag: #E5BF34; --tag-ink: #161814; --accent: #4FB39A; --accent-ink: #0D1B17;
+    --warn: #F08A74; --warn-bg: #3A1F19; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121513; --surface: #1B1F1C; --fg: #ECEFEA; --muted: #9AA59E; --line: #2F3530;
+  --tag: #E5BF34; --tag-ink: #161814; --accent: #4FB39A; --accent-ink: #0D1B17;
+  --warn: #F08A74; --warn-bg: #3A1F19; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 32px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 16px; }
+
+header {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--bg); padding-block: 8px 4px;
+  display: grid; gap: 10px;
+}
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; }
+.brand .date { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+
+form.scan { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.fields { display: grid; gap: 8px; }
+.field label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 4px; }
+#q, #kw {
+  min-width: 0; width: 100%; font: inherit; font-size: 1.1rem; padding: 12px 14px;
+  border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg);
+}
+#q:focus, #kw:focus { outline: none; border-color: var(--accent); }
+#q { font-family: var(--font-num); font-size: 1.35rem; letter-spacing: 0.04em; font-weight: 600; }
+button, .btn {
+  font: inherit; font-weight: 700; border: 0; border-radius: 10px; cursor: pointer;
+  padding: 12px 16px; background: var(--accent); color: var(--accent-ink);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+button:focus-visible, .btn:focus-within, #q:focus-visible, #kw:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
+.btn.photo { width: 100%; background: var(--surface); color: var(--fg); border: 2px dashed var(--line); font-weight: 500; }
+.btn.photo svg { width: 22px; height: 22px; }
+#photo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* 鏡頭連續掃描（只有放在自己網址時才出現；claude.ai 上相機被擋） */
+.btn.cam { width: 100%; padding-block: 14px; font-size: 1.05rem; }
+.btn.cam svg { width: 22px; height: 22px; }
+.btn.cam.on { background: var(--surface); color: var(--fg); border: 2px solid var(--line); }
+.cambox { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; max-width: 100%; order: -1; }
+/* 鏡頭開著：鏡頭移到最上面、先收起品名關鍵字欄，掃到的價格卡不用往下滑就看得到 */
+.cam-on #kwForm, .cam-on .btn.photo { display: none; }
+.cambox video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cambox .aim { position: absolute; left: 12%; right: 12%; top: 12%; bottom: 16%; border: 3px solid var(--tag); border-radius: 10px; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35); transition: border-color .15s; }
+.cambox .aim.hit { border-color: #3BD18A; }
+.cambox .camhint { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; color: #fff; font-size: 0.85rem; text-shadow: 0 1px 2px #000; }
+
+#status { color: var(--muted); font-size: 0.9rem; min-height: 1.4em; }
+#status.err { color: var(--warn); }
+
+/* the shelf label */
+.label {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  display: grid;
+}
+.label .info { padding: 16px 18px 14px; display: grid; gap: 6px; min-width: 0; }
+.label .name { font-size: 1.3rem; font-weight: 700; line-height: 1.35; text-wrap: balance; overflow-wrap: anywhere; }
+.label .spec { color: var(--muted); overflow-wrap: anywhere; }
+.label .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; }
+.label .meta b { font-family: var(--font-num); font-size: 1.05rem; font-weight: 600; color: var(--fg); letter-spacing: 0.03em; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; background: var(--warn-bg); color: var(--warn); }
+.label .price {
+  background: var(--tag); color: var(--tag-ink); padding: 10px 18px 12px;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.label .price .cap { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; }
+.label .price .num { font-family: var(--font-num); font-weight: 700; font-size: clamp(3rem, 16vw, 4.6rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.label .price .num small { font-size: 0.42em; font-weight: 600; margin-right: 4px; }
+.label .price.none { background: var(--warn-bg); color: var(--warn); }
+.label .price.none .num { font-family: var(--font-body); font-size: 1.4rem; font-weight: 700; }
+
+.list { display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.list h2 { margin: 0; padding: 10px 14px; font-size: 0.82rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; border-bottom: 1px solid var(--line); }
+.row {
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+  padding: 10px 14px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg);
+  text-align: left; font: inherit; font-weight: 400; border-radius: 0; cursor: pointer; width: 100%;
+}
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--bg); }
+.row .t { min-width: 0; overflow-wrap: anywhere; }
+.row .t small { display: block; color: var(--muted); font-size: 0.8rem; }
+.row .p { font-family: var(--font-num); font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row .p.none { font-family: var(--font-body); font-size: 0.85rem; color: var(--warn); font-weight: 500; }
+.more { padding: 10px 14px; color: var(--muted); font-size: 0.85rem; }
+
+.tabs { display: grid; grid-template-columns: 0.8fr 1.3fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.tab { border-radius: 0; background: transparent; color: var(--muted); font-weight: 700; padding: 10px 6px; font-size: 0.92rem; gap: 6px; }
+.tab .badge { display: inline-block; min-width: 1.4em; padding: 0 5px; border-radius: 999px; background: var(--tag); color: var(--tag-ink); font-size: 0.75rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+.pane { display: grid; gap: 16px; }
+#quickResult { scroll-margin-top: 120px; }
+.quick { display: grid; gap: 8px; }
+/* 各店庫存：價格下方一排小格，0 變淡、負數紅字；點一下設成「本店」會加框 */
+.stock { padding: 10px 18px 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.stock .cap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.75rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
+.stock .cap span:last-child { font-weight: 400; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.stock .cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)); gap: 4px; }
+.st { border: 1px solid transparent; border-radius: 8px; background: var(--bg); color: var(--fg); padding: 3px 0 4px; display: grid; justify-items: center; gap: 0; font: inherit; font-weight: 400; cursor: pointer; }
+.st small { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+.st b { font-family: var(--font-num); font-size: 1.25rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.st.zero b, .st.zero small { opacity: 0.4; }
+.st.neg b { color: var(--warn); }
+.st.mine { border-color: var(--accent); background: var(--surface); }
+.st.mine small { color: var(--accent); font-weight: 700; }
+.stock .none { font-size: 0.85rem; color: var(--muted); }
+.addbar { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 12px 18px 14px; border-top: 1px solid var(--line); align-items: center; }
+.stepper { display: inline-grid; grid-template-columns: 40px 56px 40px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.stepper button { border-radius: 0; padding: 8px 0; background: var(--bg); color: var(--fg); font-size: 1.1rem; }
+.stepper input { width: 100%; min-width: 0; border: 0; text-align: center; font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--surface); color: var(--fg); }
+.btn-add { background: var(--accent); color: var(--accent-ink); }
+.btn-add.done { background: var(--tag); color: var(--tag-ink); }
+.quote { display: grid; gap: 12px; }
+.qhead { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+.qhead .co { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; }
+.qhead .meta2 { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.qhead input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); width: 100%; min-width: 0; }
+.qitem { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: start; }
+.qr { background: #FFFFFF; border-radius: 6px; padding: 6px; width: 96px; height: 96px; border: 0; cursor: pointer; display: block; }
+.qr.off { background: var(--bg); border: 1px dashed var(--line); color: var(--muted); font-size: 0.78rem; font-weight: 500; line-height: 1.35; padding: 4px; display: grid; place-items: center; text-align: center; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qinfo { display: grid; gap: 6px; min-width: 0; }
+.qinfo .qn { font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.qinfo .qid { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.qline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.qline .stepper { grid-template-columns: 34px 46px 34px; }
+.qprice { display: inline-flex; align-items: center; gap: 4px; }
+.qprice input { width: 84px; font: inherit; font-weight: 700; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+.qorig { color: var(--muted); font-size: 0.8rem; text-decoration: line-through; font-variant-numeric: tabular-nums; }
+.qsub { margin-left: auto; font-family: var(--font-num); font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.qdel { background: transparent; color: var(--warn); font-weight: 500; font-size: 0.85rem; padding: 4px 6px; }
+.qtotal { background: var(--tag); color: var(--tag-ink); border-radius: 12px; padding: 12px 16px; display: grid; gap: 6px; }
+.qtotal .r { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; }
+.qtotal input { width: 72px; font: inherit; font-weight: 700; padding: 4px 6px; border: 1px solid rgba(0,0,0,0.25); border-radius: 6px; background: #FFFFFF; color: #1B1F1D; text-align: right; }
+.qshare { background: var(--accent); color: var(--accent-ink); }
+.sharebox { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.sharebox .bigqr { background: #FFFFFF; padding: 10px; border-radius: 8px; width: min(78vw, 300px); aspect-ratio: 1; }
+.sharebox .bigqr svg { width: 100%; height: 100%; display: block; }
+.sharebox p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.sharebox .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.sharebox .acts button { background: var(--bg); color: var(--fg); border: 1px solid var(--line); }
+.qtotal .big { font-family: var(--font-num); font-weight: 700; font-size: 2.4rem; line-height: 1; }
+.qactions { display: flex; gap: 8px; flex-wrap: wrap; }
+.qactions button { background: var(--surface); color: var(--warn); border: 1px solid var(--line); }
+.quick h2 { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.chip-btn {
+  display: grid; gap: 0; justify-items: start; text-align: left;
+  padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); font-weight: 700; font-size: 0.95rem;
+}
+.chip-btn small { font-weight: 400; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.chip-btn[aria-pressed="true"] { background: var(--tag); color: var(--tag-ink); border-color: var(--tag); }
+.chip-btn[aria-pressed="true"] small { color: var(--tag-ink); }
+.empty { color: var(--muted); font-size: 0.92rem; padding: 4px 2px; display: grid; gap: 6px; }
+.empty b { color: var(--fg); }
+footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { .label { animation: pop .18s ease-out; } @keyframes pop { from { transform: scale(.98); opacity: .6; } } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>天掌門市查價</h1>
+      <span class="date" id="dataDate">價格資料載入中</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" id="tabMain" aria-selected="true" aria-controls="paneMain">查價</button>
+      <button type="button" class="tab" role="tab" id="tabQuick" aria-selected="false" aria-controls="paneQuick">農機展快速查詢</button>
+      <button type="button" class="tab" role="tab" id="tabQuote" aria-selected="false" aria-controls="paneQuote">報價單 <span class="badge" id="qCount" hidden>0</span></button>
+    </div>
+  </header>
+
+  <section class="pane" id="paneMain" role="tabpanel" aria-labelledby="tabMain">
+    <div class="fields">
+      <form class="scan field" id="scanForm" autocomplete="off">
+        <div style="grid-column: 1 / -1"><label for="q">品號／條碼</label></div>
+        <input id="q" type="text" inputmode="numeric" enterkeyhint="search" placeholder="掃條碼或輸入品號">
+        <button type="submit" id="go">查詢</button>
+      </form>
+      <form class="scan field" id="kwForm" autocomplete="off">
+        <div style="grid-column: 1 / -1"><label for="kw">品名關鍵字</label></div>
+        <input id="kw" type="search" inputmode="search" enterkeyhint="search" placeholder="例如：得偉 電池">
+        <button type="submit" id="kwGo">搜尋</button>
+      </form>
+    </div>
+    <button type="button" class="btn cam" id="camBtn" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
+      <span id="camLabel">開鏡頭掃描</span>
+    </button>
+    <div class="cambox" id="camBox" hidden>
+      <video id="cam" playsinline muted></video>
+      <div class="aim" aria-hidden="true"></div>
+      <div class="camhint">條碼或 QR Code 對進黃框，會自動查</div>
+    </div>
+    <label class="btn photo" for="photo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
+      拍條碼照片辨識
+    </label>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <div id="status" role="status" aria-live="polite"></div>
+
+  <main id="result">
+    <div class="empty">
+      <div><b>條碼槍</b>：游標停在「品號／條碼」框，直接掃。</div>
+      <div id="camHint" hidden><b>手機鏡頭</b>：按「開鏡頭掃描」，條碼或 QR Code 對進黃框就自動查，不用拍照。</div>
+      <div><b>手機</b>：按「拍條碼照片辨識」，對準條碼拍一張。</div>
+      <div><b>沒有條碼</b>：在「品名關鍵字」輸入幾個字，例如「得偉 電池」。品號帶「-」的（例如 2010703-1）也從這裡查。</div>
+    </div>
+  </main>
+
+  <section class="list" id="recentBox" hidden>
+    <h2>最近查過</h2>
+    <div id="recent"></div>
+  </section>
+  </section>
+
+  <section class="pane" id="paneQuick" role="tabpanel" aria-labelledby="tabQuick" hidden>
+    <div class="quick" id="quickBox">
+      <h2>農機展庫別目前有庫存的商品，按分類點一下</h2>
+      <div class="chips" id="chips"></div>
+      <div class="empty" id="quickEmpty">快速查詢按鍵還沒載入。</div>
+    </div>
+    <div id="quickResult"></div>
+  </section>
+
+  <section class="pane quote" id="paneQuote" role="tabpanel" aria-labelledby="tabQuote" hidden>
+    <div class="qhead">
+      <div class="co">天掌五金　報價單</div>
+      <div class="meta2"><span id="qNo"></span><span id="qDate"></span></div>
+      <input id="qCustomer" type="text" placeholder="客戶名稱／電話（可不填）" autocomplete="off">
+    </div>
+    <div id="qItems"></div>
+    <div class="empty" id="qEmpty">還沒有品項。在「查價」查到商品後，按「加入報價單」。</div>
+    <div class="qtotal" id="qTotalBox" hidden>
+      <div class="r"><span>原價合計</span><span id="qSum"></span></div>
+      <div class="r"><span>整單折扣</span><span><input id="qDisc" type="text" inputmode="decimal" autocomplete="off" value="0"> %</span></div>
+      <div class="r"><span>整單折價</span><span>NT$ <input id="qOff" type="text" inputmode="numeric" autocomplete="off" value="0"></span></div>
+      <div class="r"><b>報價總計</b><span class="big" id="qTotal"></span></div>
+    </div>
+    <div class="qactions" id="qActions" hidden>
+      <button type="button" class="qshare" id="qShare">產生給客人的 QR Code</button>
+      <button type="button" id="qClear">清空報價單</button>
+    </div>
+    <div class="sharebox" id="qShareBox" hidden>
+      <b>請客人用手機相機掃這個</b>
+      <div class="bigqr" id="qShareQr"></div>
+      <p id="qShareInfo"></p>
+      <div class="acts"><button type="button" id="qCopy">複製連結</button><button type="button" id="qShareClose">收起</button></div>
+    </div>
+  </section>
+
+  <footer>零售價為 ERP 含稅零售價，每天同步一次。各店庫存每天更新一次，白天賣掉的不會馬上扣。實際結帳以 POS 為準。</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.0.8/dist/iife/ponyfill.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const items = new Map();      // 品號 -> [品號, 品名, 規格, 單位, 零售價, 停產旗標]
+  const barcodes = new Map();   // 條碼 -> [品號...]
+  const quick = [];             // [按鍵名稱, [品號...]]，來源是 Google 試算表「查價快速鍵」
+  let list = [];                // 給關鍵字搜尋用
+  let ready = false;
+  // 各店庫存（stock.txt，來源 Google 試算表「庫存表」，只有數量）：品號 -> [田中, 溪湖, 彰化, 烏日, 豐原, 倉庫, 農機展, 網路]
+  const STORES = [['0101', '田中'], ['0102', '溪湖'], ['0103', '彰化'], ['0206', '烏日'], ['0207', '豐原'], ['0199', '倉庫'], ['0104', '農機展'], ['0201', '網路']];
+  const stock = new Map();
+  let stockDate = '', stockReady = false, shownItem = null;
+
+  const fmt = (n) => Number(n).toLocaleString('zh-TW');
+  // 數字欄位點一下就整格選起來，直接打新數字就取代舊的，不用先按刪除（手機也適用）
+  function tapSelect(el) {
+    // 用文字欄位（inputmode 數字鍵盤）：number 欄位在部分瀏覽器不能全選，打字會接在舊數字後面
+    const all = () => { try { el.setSelectionRange(0, el.value.length); } catch (e) {} };
+    // 手機點下去後瀏覽器會再移一次游標，所以稍後補選一次；但已經開始打字就不再選（不然第一個數字會被蓋掉）
+    el.addEventListener('focus', () => { const v0 = el.value; all(); const again = () => { if (el.value === v0) all(); }; setTimeout(again, 0); setTimeout(again, 60); });
+    el.addEventListener('mouseup', (e) => { if (el.dataset.sel !== '1') { e.preventDefault(); el.dataset.sel = '1'; } });
+    el.addEventListener('blur', () => { el.dataset.sel = ''; });
+  }
+  function setStatus(msg, err) { $('status').textContent = msg || ''; $('status').classList.toggle('err', !!err); }
+
+  // ---------- 載入價格資料 ----------
+  // 放在 GitHub（tanjuntool.github.io）時，價格和庫存從 Apps Script「天掌查價資料」（tanjun.tool）抓，資料不放在 GitHub；
+  // 放在 claude.ai 時照舊讀同一個網址底下的 data.txt／stock.txt。
+  const DATA_BASE = /\.github\.io$/.test(location.hostname)
+    ? 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec' : '';
+  const src = (f) => DATA_BASE ? DATA_BASE + '?f=' + f : f + '.txt';
+  if (DATA_BASE) setStatus('價格資料載入中，約 5 秒…');
+  fetch(src('stock'), { cache: 'no-cache' }).then(r => r.ok ? r.text() : '').then(txt => {
+    for (const ln of txt.split('\n')) {
+      if (!ln) continue;
+      const p = ln.split('\t');
+      if (p[0] === '#') { stockDate = p[1] || ''; continue; }
+      stock.set(p[0].toUpperCase(), (p[1] || '').split(',').map(Number));
+    }
+    stockReady = true;
+    const old = $('result').querySelector('.label .stock');
+    if (shownItem && old) old.replaceWith(stockHtml(shownItem));
+  }).catch(() => {});
+
+  fetch(src('data'), { cache: 'no-cache' }).then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  }).then(txt => {
+    const lines = txt.split('\n');
+    let inBc = false, inQuick = false;
+    for (const ln of lines) {
+      if (!ln) continue;
+      if (ln[0] === '#') { const p = ln.split('\t'); $('dataDate').textContent = '價格日期 ' + (p[2] || p[1]); continue; }
+      if (ln === '@') { inBc = true; continue; }
+      if (ln === '!') { inQuick = true; continue; }
+      const p = ln.split('\t');
+      if (inQuick) { quick.push([p[0], (p[1] || '').split(',').filter(Boolean)]); continue; }
+      if (inBc) {
+        const k = p[0].toUpperCase();
+        if (!barcodes.has(k)) barcodes.set(k, []);
+        barcodes.get(k).push(p[1]);
+      } else {
+        items.set(p[0].toUpperCase(), p);
+      }
+    }
+    list = Array.from(items.values()).map(p => [p, (p[0] + ' ' + p[1] + ' ' + p[2]).toLowerCase()]);
+    ready = true;
+    setStatus('已載入 ' + fmt(items.size) + ' 個品號，可以開始掃。');
+    renderRecent();
+    renderQuick();
+    if (!$('paneQuote').hidden) renderQuote();
+    const pending = $('q').value.trim();
+    if (pending) lookup(pending);
+    const pendingKw = $('kw').value.trim();
+    if (!pending && pendingKw) searchName(pendingKw);
+  }).catch(err => {
+    $('dataDate').textContent = '價格資料沒有載入';
+    setStatus('價格資料載入失敗（' + err.message + '）。請檢查網路後重新整理頁面。', true);
+  });
+
+  // ---------- 查詢 ----------
+  function findByCode(code) {
+    const c = code.toUpperCase();
+    if (items.has(c)) return [items.get(c)];
+    const tries = [c, '0' + c, c.replace(/^0+/, '')];
+    for (const t of tries) {
+      if (barcodes.has(t)) return barcodes.get(t).map(id => items.get(id.toUpperCase())).filter(Boolean);
+    }
+    return [];
+  }
+
+  // 品號／條碼欄：先完全比對品號，再比對商品條碼（INVMH），都沒有就列出「品號開頭相同」的
+  function lookup(raw) {
+    const q = raw.trim();
+    if (!q) return;
+    if (!ready) { setStatus('價格資料還在載入，載好會自動查。'); return; }
+    const hits = findByCode(q);
+    if (hits.length === 1) { showItem(hits[0]); remember(hits[0][0]); setStatus(''); return selectInput(); }
+    if (hits.length > 1) { showList(hits, '這個條碼對到 ' + hits.length + ' 個品號'); setStatus(''); return selectInput(); }
+    const up = q.toUpperCase();
+    const pre = up.length >= 4 ? Array.from(items.values()).filter(p => p[0].toUpperCase().startsWith(up)) : [];
+    if (pre.length) { showList(pre, '品號開頭是 ' + q + ' 的有 ' + fmt(pre.length) + ' 筆'); setStatus(''); }
+    else { $('result').innerHTML = ''; setStatus('查不到品號或條碼「' + q + '」。這個條碼可能沒建在 ERP，請改用品名關鍵字查。', true); }
+    selectInput();
+  }
+
+  // 品名關鍵字欄：空白分隔的每個字都要出現在品名或規格裡
+  function searchName(raw) {
+    const q = raw.trim();
+    if (!q) return;
+    if (!ready) { setStatus('價格資料還在載入，請稍等再搜尋。'); return; }
+    const toks = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const found = [];
+    for (const [p, hay] of list) {
+      if (toks.every(t => hay.includes(t))) found.push(p);
+    }
+    if (found.length === 1) { showItem(found[0]); remember(found[0][0]); setStatus(''); }
+    else if (found.length) { showList(found, '找到 ' + fmt(found.length) + ' 筆，點一下看價格'); setStatus(''); }
+    else { $('result').innerHTML = ''; setStatus('品名找不到「' + q + '」。試試少打幾個字，或換個說法。', true); }
+  }
+
+  function selectInput() { if (camStream) return; const el = $('q'); el.focus({ preventScroll: true }); el.select(); }  // 鏡頭開著時不搶焦點，免得跳出鍵盤
+
+  function priceHtml(p) {
+    const v = Number(p[4]);
+    if (!v) return '<div class="price none"><span class="cap">零售價</span><span class="num">未設定售價</span></div>';
+    return '<div class="price"><span class="cap">零售價（含稅）</span><span class="num"><small>NT$</small>' + fmt(v) + '</span></div>';
+  }
+
+  function myStore() { try { return localStorage.getItem('pc_store') || ''; } catch (e) { return ''; } }
+  function stockHtml(p) {
+    const wrap = document.createElement('div'); wrap.className = 'stock';
+    const cap = document.createElement('div'); cap.className = 'cap';
+    const t1 = document.createElement('span'); t1.textContent = '各店庫存';
+    const t2 = document.createElement('span'); t2.textContent = stockReady ? (stockDate ? '資料日期 ' + stockDate : '') : '載入中';
+    cap.append(t1, t2); wrap.appendChild(cap);
+    if (!stockReady) return wrap;
+    const v = stock.get(String(p[0]).toUpperCase()) || [];
+    const cells = document.createElement('div'); cells.className = 'cells';
+    const mine = myStore();
+    STORES.forEach(([code, name], i) => {
+      const q = Number(v[i]) || 0;
+      if (i >= 6 && !q) return;   // 農機展、網路店沒有庫存就不顯示，免得太擠
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = 'st' + (q === 0 ? ' zero' : '') + (q < 0 ? ' neg' : '') + (code === mine ? ' mine' : '');
+      b.setAttribute('aria-label', name + ' 庫存 ' + q + (code === mine ? '（本店）' : '') + '，點一下設成本店');
+      const sm = document.createElement('small'); sm.textContent = code === mine ? name + '★' : name;
+      const n = document.createElement('b'); n.textContent = fmt(q);
+      b.append(sm, n);
+      b.addEventListener('click', () => {
+        try { if (myStore() === code) localStorage.removeItem('pc_store'); else localStorage.setItem('pc_store', code); } catch (e) {}
+        wrap.replaceWith(stockHtml(p));   // 只換庫存這一塊，數量加減器不會被重設
+      });
+      cells.appendChild(b);
+    });
+    wrap.appendChild(cells);
+    if (!v.some(x => x)) { const n = document.createElement('div'); n.className = 'none'; n.textContent = '各店都沒有庫存'; wrap.appendChild(n); }
+    return wrap;
+  }
+
+  function showItem(p) {
+    shownItem = p;
+    const box = $('result');
+    box.innerHTML = '';
+    const card = document.createElement('article');
+    card.className = 'label';
+    card.innerHTML =
+      '<div class="info"><div class="name"></div><div class="spec"></div>' +
+      '<div class="meta"><span>品號 <b class="id"></b></span><span class="unit"></span><span class="flag"></span></div></div>' +
+      priceHtml(p);
+    card.querySelector('.name').textContent = p[1] || '（沒有品名）';
+    const spec = card.querySelector('.spec');
+    if (p[2]) spec.textContent = p[2]; else spec.hidden = true;
+    card.querySelector('.id').textContent = p[0];
+    card.querySelector('.unit').textContent = p[3] ? '單位 ' + p[3] : '';
+    if (p[5] === 'C') card.querySelector('.flag').innerHTML = '<span class="chip">停產</span>';
+    // 加入報價單
+    const bar = document.createElement('div'); bar.className = 'addbar';
+    const st = stepper(1, () => {});
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'btn-add'; add.textContent = '加入報價單';
+    add.addEventListener('click', () => {
+      const n = addToQuote(p[0], st.value());
+      add.textContent = '已加入（報價單共 ' + n + ' 項）'; add.classList.add('done');
+      setTimeout(() => { add.textContent = '加入報價單'; add.classList.remove('done'); }, 2500);
+    });
+    bar.append(st.el, add);
+    card.appendChild(stockHtml(p));
+    card.appendChild(bar);
+    box.appendChild(card);
+  }
+
+  // 數量加減器：回傳 {el, value()}
+  function stepper(start, onChange) {
+    const w = document.createElement('div'); w.className = 'stepper';
+    const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.setAttribute('aria-label', '減少數量');
+    const inp = document.createElement('input'); inp.type = 'text'; inp.inputMode = 'numeric'; inp.autocomplete = 'off'; inp.value = String(start); inp.setAttribute('aria-label', '數量');
+    const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.setAttribute('aria-label', '增加數量');
+    const val = () => { const v = Math.floor(Number(inp.value)); return v > 0 ? v : 1; };
+    minus.addEventListener('click', () => { inp.value = String(Math.max(1, val() - 1)); onChange(val()); });
+    plus.addEventListener('click', () => { inp.value = String(val() + 1); onChange(val()); });
+    tapSelect(inp);
+    inp.addEventListener('input', () => { if (inp.value !== '') onChange(val()); });
+    inp.addEventListener('change', () => { inp.value = String(val()); onChange(val()); });
+    w.append(minus, inp, plus);
+    return { el: w, value: val };
+  }
+
+  function rowFor(p) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'row';
+    const t = document.createElement('span'); t.className = 't';
+    t.textContent = p[1] || p[0];
+    const s = document.createElement('small'); s.textContent = p[0] + (p[2] ? '　' + p[2] : '') + (p[5] === 'C' ? '　停產' : '');
+    t.appendChild(s);
+    const pr = document.createElement('span');
+    const v = Number(p[4]);
+    pr.className = 'p' + (v ? '' : ' none');
+    pr.textContent = v ? fmt(v) : '未設定售價';
+    b.append(t, pr);
+    b.addEventListener('click', () => { showTab('main'); showItem(p); remember(p[0]); setStatus(''); window.scrollTo({ top: 0 }); });
+    return b;
+  }
+
+  function showList(arr, title, limit, target) {
+    const lim = limit || 60;
+    const box = target || $('result');
+    box.innerHTML = '';
+    const sec = document.createElement('section'); sec.className = 'list';
+    const h = document.createElement('h2'); h.textContent = title; sec.appendChild(h);
+    arr.slice(0, lim).forEach(p => sec.appendChild(rowFor(p)));
+    if (arr.length > lim) { const m = document.createElement('div'); m.className = 'more'; m.textContent = '只列前 ' + lim + ' 筆，請多打幾個字縮小範圍。'; sec.appendChild(m); }
+    box.appendChild(sec);
+  }
+
+  // ---------- 快速查詢按鍵 ----------
+  function renderQuick() {
+    const box = $('chips'); box.innerHTML = '';
+    quick.forEach(([name, ids]) => {
+      const arr = ids.map(id => items.get(id.toUpperCase())).filter(Boolean);
+      if (!arr.length) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip-btn'; b.setAttribute('aria-pressed', 'false');
+      const t = document.createElement('span'); t.textContent = name;
+      const n = document.createElement('small'); n.textContent = arr.length + ' 項';
+      b.append(t, n);
+      b.addEventListener('click', () => {
+        box.querySelectorAll('.chip-btn').forEach(x => x.setAttribute('aria-pressed', 'false'));
+        b.setAttribute('aria-pressed', 'true');
+        const sorted = arr.slice().sort((a, b2) => (a[1] || '').localeCompare(b2[1] || '', 'zh-Hant'));
+        showList(sorted, name + '（' + arr.length + ' 項）・點商品看大字價格', 400, $('quickResult'));
+        $('quickResult').scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+      box.appendChild(b);
+    });
+    $('quickEmpty').hidden = box.children.length > 0;
+    if (!box.children.length) $('quickEmpty').textContent = '目前沒有設定快速查詢按鍵。';
+  }
+  function clearQuick() { document.querySelectorAll('#chips .chip-btn').forEach(x => x.setAttribute('aria-pressed', 'false')); }
+
+  // ---------- 分頁 ----------
+  function showTab(which) {
+    const panes = { main: 'paneMain', quick: 'paneQuick', quote: 'paneQuote' };
+    const tabs = { main: 'tabMain', quick: 'tabQuick', quote: 'tabQuote' };
+    if (!panes[which]) which = 'main';
+    Object.keys(panes).forEach(k => {
+      $(panes[k]).hidden = k !== which;
+      $(tabs[k]).setAttribute('aria-selected', String(k === which));
+    });
+    if (which === 'quote') renderQuote();
+    try { localStorage.setItem('pc_tab', which); } catch (e) {}
+  }
+  $('tabMain').addEventListener('click', () => { showTab('main'); selectInput(); });
+  $('tabQuick').addEventListener('click', () => showTab('quick'));
+  $('tabQuote').addEventListener('click', () => showTab('quote'));
+
+  // ---------- 報價單（只存在這支手機）----------
+  // 結構：{no, created, customer, disc, items: [{id, qty, price}]}；price 為 null 代表用 ERP 零售價
+  const pad = (n) => String(n).padStart(2, '0');
+  function newQuote() {
+    const d = new Date();
+    return { no: 'Q' + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' + pad(d.getHours()) + pad(d.getMinutes()),
+             created: d.toISOString(), customer: '', disc: 0, off: 0, items: [] };
+  }
+  function loadQuote() {
+    try { const q = JSON.parse(localStorage.getItem('pc_quote') || 'null'); if (q && Array.isArray(q.items)) return q; } catch (e) {}
+    return newQuote();
+  }
+  let quote = loadQuote();
+  function saveQuote() { try { localStorage.setItem('pc_quote', JSON.stringify(quote)); } catch (e) {} updateBadge(); }
+  function updateBadge() { const n = quote.items.length; $('qCount').textContent = String(n); $('qCount').hidden = n === 0; }
+  function addToQuote(id, qty) {
+    if (!quote.items.length) quote = Object.assign(newQuote(), { customer: quote.customer || '' });
+    const it = quote.items.find(x => x.id === id);
+    if (it) it.qty += qty; else quote.items.push({ id: id, qty: qty, price: null });
+    saveQuote();
+    return quote.items.length;
+  }
+  function unitPrice(it, p) { return it.price != null ? it.price : Number(p ? p[4] : 0); }
+
+  function qrSvg(text, ecl, quiet) {
+    const m = quiet || 2;
+    if (!window.qrcode) return null;
+    const q = window.qrcode(0, ecl || 'M'); q.addData(text); q.make();
+    const n = q.getModuleCount();
+    let d = '';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += 'M' + c + ' ' + r + 'h1v1h-1z';
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', -m + ' ' + -m + ' ' + (n + 2 * m) + ' ' + (n + 2 * m));
+    svg.setAttribute('shape-rendering', 'crispEdges');
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', 'QR Code ' + text);
+    const bg = document.createElementNS(ns, 'rect'); bg.setAttribute('x', -m); bg.setAttribute('y', -m); bg.setAttribute('width', n + 2 * m); bg.setAttribute('height', n + 2 * m); bg.setAttribute('fill', '#FFFFFF');
+    const path = document.createElementNS(ns, 'path'); path.setAttribute('d', d); path.setAttribute('fill', '#000000');
+    svg.append(bg, path);
+    return svg;
+  }
+
+  function renderQuote() {
+    const box = $('qItems'); box.innerHTML = '';
+    const d = new Date(quote.created);
+    $('qNo').textContent = '單號 ' + quote.no;
+    $('qDate').textContent = '日期 ' + (d.getFullYear() - 1911) + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate());
+    $('qCustomer').value = quote.customer || '';
+    $('qDisc').value = String(quote.disc || 0);
+    $('qOff').value = String(quote.off || 0);
+    const has = quote.items.length > 0;
+    $('qEmpty').hidden = has; $('qTotalBox').hidden = !has; $('qActions').hidden = !has;
+    quote.items.forEach((it, idx) => {
+      const p = items.get(String(it.id).toUpperCase());
+      const row = document.createElement('div'); row.className = 'qitem';
+      // 點 QR Code 本身可以隱藏／顯示：品項多時把不用刷的藏起來，掃碼槍才不會刷到隔壁那個
+      const qr = document.createElement('button'); qr.type = 'button';
+      const drawQr = () => {
+        qr.innerHTML = '';
+        qr.className = 'qr' + (it.qrOff ? ' off' : '');
+        qr.setAttribute('aria-label', it.qrOff ? '顯示品號 ' + it.id + ' 的 QR Code' : '隱藏品號 ' + it.id + ' 的 QR Code');
+        if (it.qrOff) { qr.textContent = 'QR 已隱藏\n點一下顯示'; qr.style.whiteSpace = 'pre-line'; return; }
+        qr.style.whiteSpace = '';
+        const svg = qrSvg(it.id); if (svg) qr.appendChild(svg); else qr.textContent = it.id;
+      };
+      qr.addEventListener('click', () => { it.qrOff = !it.qrOff; saveQuote(); drawQr(); });
+      drawQr();
+      const info = document.createElement('div'); info.className = 'qinfo';
+      const nm = document.createElement('div'); nm.className = 'qn'; nm.textContent = p ? (p[1] || it.id) : it.id + '（查不到這個品號）';
+      const idl = document.createElement('div'); idl.className = 'qid'; idl.textContent = '品號 ' + it.id + (p && p[2] ? '　' + p[2] : '') + (p && p[3] ? '　' + p[3] : '');
+      const line = document.createElement('div'); line.className = 'qline';
+      const st = stepper(it.qty, (v) => { it.qty = v; saveQuote(); renderTotals(); sub.textContent = fmt(unitPrice(it, p) * it.qty); });
+      const pr = document.createElement('label'); pr.className = 'qprice';
+      const pin = document.createElement('input'); pin.type = 'text'; pin.inputMode = 'decimal'; pin.autocomplete = 'off'; pin.value = String(unitPrice(it, p)); pin.setAttribute('aria-label', '單價');
+      const orig = document.createElement('span'); orig.className = 'qorig';
+      const showOrig = () => { const o = Number(p ? p[4] : 0); orig.textContent = (it.price != null && it.price !== o) ? '原價 ' + fmt(o) : ''; };
+      tapSelect(pin);
+      const setPrice = (normalize) => {
+        if (pin.value === '' && !normalize) return;
+        const v = Number(pin.value); const o = Number(p ? p[4] : 0);
+        it.price = (pin.value !== '' && isFinite(v) && v >= 0 && v !== o) ? v : null;
+        if (normalize) pin.value = String(unitPrice(it, p));
+        showOrig(); saveQuote(); renderTotals(); sub.textContent = fmt(unitPrice(it, p) * it.qty);
+      };
+      pin.addEventListener('input', () => setPrice(false));   // 打字當下就重算
+      pin.addEventListener('change', () => setPrice(true));
+      pr.append('單價', pin); showOrig();
+      const sub = document.createElement('span'); sub.className = 'qsub'; sub.textContent = fmt(unitPrice(it, p) * it.qty);
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'qdel'; del.textContent = '移除';
+      del.addEventListener('click', () => { quote.items.splice(idx, 1); saveQuote(); renderQuote(); });
+      line.append(st.el, pr, sub);
+      const line2 = document.createElement('div'); line2.className = 'qline'; line2.append(orig, del);
+      info.append(nm, idl, line, line2);
+      row.append(qr, info);
+      box.appendChild(row);
+    });
+    renderTotals();
+    updateBadge();
+  }
+  function renderTotals() {
+    let sumOrig = 0, sum = 0;
+    quote.items.forEach(it => { const p = items.get(String(it.id).toUpperCase()); sumOrig += Number(p ? p[4] : 0) * it.qty; sum += unitPrice(it, p) * it.qty; });
+    const disc = Math.min(100, Math.max(0, Number(quote.disc) || 0));
+    $('qSum').textContent = 'NT$ ' + fmt(sumOrig) + (sum !== sumOrig ? '（改價後 ' + fmt(sum) + '）' : '');
+    $('qTotal').textContent = 'NT$ ' + fmt(quoteTotal(sum, disc, quote.off));
+  }
+  // 先打折扣 %（四捨五入到元），再減折價金額，最低 0
+  function quoteTotal(sum, disc, off) { return Math.max(0, Math.round(sum * (100 - disc) / 100) - Math.max(0, Math.round(Number(off) || 0))); }
+  $('qCustomer').addEventListener('input', () => { quote.customer = $('qCustomer').value; saveQuote(); });
+  // 整單折扣、整單折價：打字當下就重算總計；離開欄位時才把空白／超出範圍的值整理好
+  function liveNum(id, key, clamp) {
+    const el = $(id);
+    tapSelect(el);
+    const read = () => clamp(Number(el.value));
+    el.addEventListener('input', () => { quote[key] = el.value === '' ? 0 : read(); saveQuote(); renderTotals(); });
+    el.addEventListener('change', () => { quote[key] = read(); el.value = String(quote[key]); saveQuote(); renderTotals(); });
+  }
+  liveNum('qDisc', 'disc', (v) => (!isFinite(v) || v < 0) ? 0 : Math.min(100, v));
+  liveNum('qOff', 'off', (v) => (!isFinite(v) || v < 0) ? 0 : Math.round(v));
+  let clearArmed = null;
+  $('qClear').addEventListener('click', () => {
+    if (clearArmed) { clearTimeout(clearArmed); clearArmed = null; quote = newQuote(); saveQuote(); renderQuote(); $('qClear').textContent = '清空報價單'; return; }
+    $('qClear').textContent = '再按一次確認清空';
+    clearArmed = setTimeout(() => { clearArmed = null; $('qClear').textContent = '清空報價單'; }, 3000);
+  });
+  // ---------- 給客人的報價單連結 ----------
+  // 整張報價單打包在網址 ?q= 後面，連到 Google Apps Script 的報價單頁（查價網頁\報價單_客人頁\）。
+  // 為什麼不連回本頁：claude.ai 的 artifact 網址後面帶的 # 和 ? 都傳不進頁面（10/17 實測），只能另外架一頁。
+  // 格式 v1：JSON [版本, 單號, 建立時間ISO, 客戶, 折扣%, [[品號, 品名, 規格, 單位, 數量, 單價, 原價], ...]]
+  // 格式 v2（V12 起，有整單折價時）：v1 後面多一欄 折價金額（元）
+  // 打包：UTF-8 → deflate-raw（瀏覽器支援才壓）→ base64url；開頭 z = 有壓縮、j = 沒壓縮
+  const SHARE_BASE = 'https://script.google.com/macros/s/AKfycbxl3qLdUuRIgBopXPcm03zqPp5xeCwatfvvD4jee9tPeIxvHK2LpPns-pEWqq72Tq4aRA/exec';   // Apps Script「天掌報價單」（tanjun.tool）部署 1 版；空白 = 還沒部署
+  const b64u = (bytes) => { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64u = (str) => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; };
+  async function pipe(bytes, stream) { return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer()); }
+  async function packQuote() {
+    const rows = quote.items.map(it => { const p = items.get(String(it.id).toUpperCase()); return [it.id, p ? p[1] : '', p ? p[2] : '', p ? p[3] : '', it.qty, unitPrice(it, p), Number(p ? p[4] : 0)]; });
+    const off = Math.max(0, Math.round(Number(quote.off) || 0));
+    // 有整單折價才用 v2（多第 7 欄折價金額）；舊版客人頁看到 v2 會說格式不對，不會顯示錯的總價
+    const pk = off ? [2, quote.no, quote.created, quote.customer || '', Number(quote.disc) || 0, rows, off] : [1, quote.no, quote.created, quote.customer || '', Number(quote.disc) || 0, rows];
+    const raw = new TextEncoder().encode(JSON.stringify(pk));
+    if (window.CompressionStream) { try { return 'z' + b64u(await pipe(raw, new CompressionStream('deflate-raw'))); } catch (e) {} }
+    return 'j' + b64u(raw);
+  }
+  let shareUrl = '';
+  $('qShare').addEventListener('click', async () => {
+    if (!quote.items.length) return;
+    const box = $('qShareQr'); box.innerHTML = '';
+    if (!SHARE_BASE) { box.textContent = '客人看報價單的頁面還沒架好，請通知老闆。'; $('qShareInfo').textContent = ''; $('qShareBox').hidden = false; return; }
+    shareUrl = SHARE_BASE + '?q=' + (await packQuote());
+    let svg = null; try { svg = qrSvg(shareUrl, 'L', 4); } catch (e) {}
+    if (svg) { svg.setAttribute('aria-label', '報價單 QR Code'); box.appendChild(svg); $('qShareInfo').textContent = '單號 ' + quote.no + '，共 ' + quote.items.length + ' 項。之後改了報價單要重按一次產生。'; }
+    else { box.textContent = '品項太多，QR Code 裝不下。請分成兩張報價單，或用「複製連結」傳給客人。'; $('qShareInfo').textContent = ''; }
+    $('qShareBox').hidden = false;
+    $('qShareBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('qShareClose').addEventListener('click', () => { $('qShareBox').hidden = true; });
+  $('qCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(shareUrl); $('qCopy').textContent = '已複製'; }
+    catch (e) { window.prompt && prompt('複製這個連結', shareUrl); }
+    setTimeout(() => { $('qCopy').textContent = '複製連結'; }, 2000);
+  });
+
+  updateBadge();
+  try { const t = localStorage.getItem('pc_tab'); if (t === 'quick' || t === 'quote') showTab(t); } catch (e) {}
+
+  // ---------- 最近查過（只存在這支手機）----------
+  function getRecent() { try { return JSON.parse(localStorage.getItem('pc_recent') || '[]'); } catch (e) { return []; } }
+  function remember(id) {
+    const r = getRecent().filter(x => x !== id); r.unshift(id);
+    try { localStorage.setItem('pc_recent', JSON.stringify(r.slice(0, 8))); } catch (e) {}
+    renderRecent();
+  }
+  function renderRecent() {
+    const ids = getRecent().map(id => items.get(String(id).toUpperCase())).filter(Boolean);
+    $('recentBox').hidden = ids.length === 0;
+    const box = $('recent'); box.innerHTML = '';
+    ids.forEach(p => box.appendChild(rowFor(p)));
+  }
+
+  $('scanForm').addEventListener('submit', (e) => { e.preventDefault(); lookup($('q').value); });
+  $('kwForm').addEventListener('submit', (e) => { e.preventDefault(); $('kw').blur(); searchName($('kw').value); });
+
+  // ---------- 拍照辨識條碼 ----------
+  function loadImage(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { res(img); setTimeout(() => URL.revokeObjectURL(url), 1000); };
+      img.onerror = () => rej(new Error('照片讀不出來'));
+      img.src = url;
+    });
+  }
+  function toCanvas(img, maxSide, rotate) {
+    const s = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
+    const c = document.createElement('canvas');
+    c.width = rotate ? h : w; c.height = rotate ? w : h;
+    const g = c.getContext('2d');
+    if (rotate) { g.translate(h, 0); g.rotate(Math.PI / 2); }
+    g.drawImage(img, 0, 0, w, h);
+    return c;
+  }
+  // 條碼辨識器：手機內建（支援條碼＋QR 才用）→ zxing-cpp（barcode-detector 套件）→ 最後才用 ZXing JS。
+  // ZXing JS 只要條碼兩側夾到一點深色背景就讀不出（10/18 實測），貨架標籤很常見，所以優先用前兩種。
+  const FORMATS = ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'itf', 'qr_code'];
+  let _det = null;
+  async function getDetector() {
+    if (_det !== null) return _det;
+    try {
+      if ('BarcodeDetector' in window) {
+        const s = await window.BarcodeDetector.getSupportedFormats();
+        if (s.includes('code_128') && s.includes('qr_code')) return (_det = new window.BarcodeDetector({ formats: FORMATS }));
+      }
+    } catch (e) {}
+    try { if (window.BarcodeDetectionAPI) return (_det = new window.BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS })); } catch (e) {}
+    return (_det = false);
+  }
+
+  async function decode(img) {
+    const det = await getDetector();
+    if (det) {
+      try {
+        const r = await det.detect(img);
+        if (r && r.length) return r[0].rawValue;
+      } catch (e) {}
+    }
+    if (!window.ZXing) throw new Error('條碼辨識元件沒有載入');
+    const Z = window.ZXing;
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+      Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A,
+      Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF, Z.BarcodeFormat.QR_CODE
+    ]);
+    const reader = new Z.MultiFormatReader();
+    reader.setHints(hints);
+    const tryCanvas = (c) => {
+      try {
+        const src = new Z.HTMLCanvasElementLuminanceSource(c);
+        return reader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(src))).getText();
+      } catch (e) { reader.reset(); return null; }
+    };
+    for (const size of [1600, 1000]) {
+      for (const rot of [false, true]) {
+        const t = tryCanvas(toCanvas(img, size, rot));
+        if (t) return t;
+      }
+    }
+    // 貨架標籤上的條碼通常只佔照片一小塊，線條太細認不出來：
+    // 把照片切成重疊的小塊，每塊放大 2～3 倍再找（2026-10-17 用 WD40 標籤實拍照片驗證）
+    const W = img.naturalWidth, H = img.naturalHeight;
+    for (const fw of [0.45, 0.3]) {
+      const ww = W * fw, wh = ww * 0.35, s = Math.min(3.5, 1400 / ww);
+      for (let y = 0; y + wh <= H + 1; y += wh / 2) {
+        for (let x = 0; x + ww <= W + 1; x += ww / 4) {
+          const c = document.createElement('canvas');
+          c.width = Math.round(ww * s); c.height = Math.round(wh * s);
+          c.getContext('2d').drawImage(img, x, y, ww, wh, 0, 0, c.width, c.height);
+          const t = tryCanvas(c);
+          if (t) return t;
+        }
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    return null;
+  }
+  $('photo').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    setStatus('辨識中…');
+    try {
+      const img = await loadImage(f);
+      const code = await decode(img);
+      if (!code) { setStatus('照片裡找不到條碼。請靠近一點、讓條碼橫躺在畫面中間、避開反光再拍一次。', true); return; }
+      $('q').value = code;
+      lookup(code);
+    } catch (err) {
+      setStatus('辨識失敗：' + err.message + '。可以改用手動輸入品號。', true);
+    }
+  });
+
+  // ---------- 開鏡頭連續掃描（條碼＋QR Code）----------
+  // 只有放在自己的 https 網址（GitHub Pages）才開得了鏡頭；claude.ai 上相機一律被擋，所以那邊不顯示按鈕。
+  var camStream = null;
+  let camTimer = null, lastCode = '', lastAt = 0, camReader = null, detector = null;
+  if (DATA_BASE && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { $('camBtn').hidden = false; $('camHint').hidden = false; }
+
+  function stopCam() {
+    if (camTimer) { clearTimeout(camTimer); camTimer = null; }
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    $('camBox').hidden = true;
+    document.body.classList.remove('cam-on');
+    $('camBtn').classList.remove('on');
+    $('camLabel').textContent = '開鏡頭掃描';
+  }
+
+  async function startCam() {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false
+      });
+    } catch (e) {
+      camStream = null;
+      setStatus('鏡頭開不起來（' + (e.name === 'NotAllowedError' ? '沒有允許使用相機，請到瀏覽器設定允許' : (e.name || '錯誤')) + '）。可以先用「拍條碼照片辨識」。', true);
+      return;
+    }
+    const v = $('cam');
+    v.srcObject = camStream;
+    try { await v.play(); } catch (e) {}
+    $('camBox').hidden = false;
+    document.body.classList.add('cam-on');
+    window.scrollTo({ top: 0 });
+    $('camBtn').classList.add('on');
+    $('camLabel').textContent = '關閉鏡頭';
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    detector = (await getDetector()) || null;
+    if (!detector && window.ZXing && !camReader) {
+      const Z = window.ZXing;
+      const hints = new Map();
+      hints.set(Z.DecodeHintType.TRY_HARDER, true);
+      hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+        Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A,
+        Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF, Z.BarcodeFormat.QR_CODE
+      ]);
+      camReader = new Z.MultiFormatReader();
+      camReader.setHints(hints);
+    }
+    setStatus('鏡頭已開，把條碼或 QR Code 對進黃框。');
+    scanLoop();
+  }
+
+  const frame = document.createElement('canvas');
+  async function scanLoop() {
+    if (!camStream) return;
+    const v = $('cam');
+    const vw = v.videoWidth, vh = v.videoHeight;
+    let code = null;
+    if (vw && vh) {
+      // 取中間黃框附近那塊（寬 76%、高 72%）放大到約 1200px 寬再辨識；畫面是 16:9 置中裁切，相機實際畫面比較高，所以框外上下還有餘裕
+      const sx = vw * 0.12, sw = vw * 0.76, sy = vh * 0.12, sh = vh * 0.72;
+      const s = Math.min(2.5, 1200 / sw);
+      frame.width = Math.round(sw * s); frame.height = Math.round(sh * s);
+      frame.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
+      try {
+        if (detector) {
+          const r = await detector.detect(frame);
+          if (r && r.length) code = r[0].rawValue;
+        } else if (camReader) {
+          const Z = window.ZXing;
+          code = camReader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(frame)))).getText();
+        }
+      } catch (e) { if (camReader) camReader.reset(); }
+    }
+    const now = Date.now();
+    if (code && !(code === lastCode && now - lastAt < 3000)) {   // 同一個碼 3 秒內不重複查
+      lastCode = code; lastAt = now;
+      const aim = document.querySelector('.cambox .aim');
+      aim.classList.add('hit'); setTimeout(() => aim.classList.remove('hit'), 600);
+      try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+      code = String(code).trim();
+      if (/^https?:\/\//i.test(code)) {
+        setStatus('掃到的是網址，不是品號：' + code.slice(0, 60) + (code.length > 60 ? '…' : ''), true);
+      } else {
+        showTab('main');
+        $('q').value = code;
+        lookup(code);
+      }
+    }
+    camTimer = setTimeout(scanLoop, code ? 900 : 180);
+  }
+
+  $('camBtn').addEventListener('click', () => { if (camStream) stopCam(); else startCam(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && camStream) stopCam(); });
+
+  try { $('q').focus({ preventScroll: true }); } catch (e) {}
+})();
+</script>
+
+</html>
