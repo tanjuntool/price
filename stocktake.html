@@ -621,7 +621,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       $('q').value = code; lookup(code);
     } catch (err) { setStatus('辨識失敗：' + err.message, true); }
   });
-  var camStream = null; let camTimer = 0, lastCode = '', lastAt = 0, detector = null, camReader = null;
+  var camStream = null; let camTimer = 0, multiAt = 0, detector = null, camReader = null;
   if (location.protocol === 'https:' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) $('camBtn').hidden = false;
   if (isLocal && qs.get('cam') === '1') $('camBtn').hidden = false;
   function stopCam() {
@@ -647,19 +647,27 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       frame.width = Math.round(sw * s); frame.height = Math.round(sh * s);
       frame.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
       try {
-        if (detector) { const r = await detector.detect(frame); if (r && r.length) code = r[0].rawValue; }
+        if (detector) {
+          const r = await detector.detect(frame);
+          if (r && r.length) {
+            const codes = [...new Set(r.map(x => String(x.rawValue || '').trim()).filter(Boolean))];
+            // 同一個畫面裡有兩個以上不同的條碼：不帶出，避免帶錯品號
+            if (codes.length > 1) { multiAt = Date.now(); setStatus('畫面裡有 ' + codes.length + ' 個條碼，請只對準要盤的那一個。', true); }
+            else if (codes.length === 1) code = codes[0];
+          }
+        }
         else if (camReader) { const Z = window.ZXing; code = camReader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(frame)))).getText(); }
       } catch (e) { if (camReader) camReader.reset(); }
     }
-    const now = Date.now();
-    // 盤點時同一個條碼常常連掃：同一個碼 4 秒內不重複帶出（不會自動加數量，要按「加入」）
-    if (code && !(code === lastCode && now - lastAt < 4000)) {
-      lastCode = code; lastAt = now;
-      const aim = document.querySelector('.cambox .aim'); aim.classList.add('hit'); setTimeout(() => aim.classList.remove('hit'), 600);
-      try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    // 掃到一個條碼：震動、馬上關鏡頭，再帶出品號（老闆 10/22：避免同時掃到第二個品號輸入錯誤）
+    if (code) {
+      try { if (navigator.vibrate) navigator.vibrate(150); } catch (e) {}
+      stopCam();
       $('q').value = String(code).trim(); lookup($('q').value);
+      return;
     }
-    camTimer = setTimeout(scanLoop, code ? 900 : 180);
+    if (multiAt && Date.now() - multiAt > 1500) { multiAt = 0; setStatus('鏡頭已開，條碼對進黃框。'); }
+    camTimer = setTimeout(scanLoop, 180);
   }
   $('camBtn').onclick = () => { if (camStream) stopCam(); else startCam(); };
   $('camClose').onclick = stopCam;
