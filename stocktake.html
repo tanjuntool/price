@@ -285,12 +285,24 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       stock.set(p[0].toUpperCase(), (p[1] || '').split(',').map(Number));
     }
   }
+  // 品名、條碼（約 2.7MB、7 萬多行）和各店庫存：手機存一份，6 小時內不重抓（每天才更新一次）。
+  // 以前每次打開都重抓、抓到又整份重算，盤到一半畫面會卡。
+  const FRESH_MS = 6 * 3600 * 1000;
   function loadData() {
-    idb('readonly', s => s.get('data')).then(c => { if (c && c.txt && !ready) { parseData(c.txt); setStatus('品名資料用手機存的，正在更新…'); } }).catch(() => {});
-    idb('readonly', s => s.get('stock')).then(c => { if (c && c.txt && !stock.size) parseStock(c.txt); }).catch(() => {});
-    getText('data').then(t => { parseData(t); idb('readwrite', s => s.put({ txt: t, at: Date.now() }, 'data')).catch(() => {}); if (!$('status').classList.contains('err')) setStatus('品名資料已載入 ' + fmt(items.size) + ' 個品號。'); })
-      .catch(e => { if (!ready) setStatus('品名資料載入失敗（' + e.message + '），還是可以直接打品號盤。', true); });
-    getText('stock').then(t => { parseStock(t); idb('readwrite', s => s.put({ txt: t, at: Date.now() }, 'stock')).catch(() => {}); if (shown) renderItem(); }).catch(() => {});
+    const want = (key, parse, after) => idb('readonly', s => s.get(key)).catch(() => null).then(c => {
+      if (c && c.txt) { parse(c.txt); if (after) after(true); }
+      if (c && c.txt && Date.now() - (c.at || 0) < FRESH_MS) return;      // 夠新，不抓
+      return getText(key).then(t => {
+        if (c && c.txt && c.txt.length === t.length && c.txt === t) { idb('readwrite', s => s.put({ txt: t, at: Date.now() }, key)).catch(() => {}); return; }
+        const apply = () => { parse(t); idb('readwrite', s => s.put({ txt: t, at: Date.now() }, key)).catch(() => {}); if (after) after(false); };
+        // 正在輸入時先不換（避免卡住），等手空下來再換
+        const later = () => { const a = document.activeElement; if (a && (a.id === 'qty' || a.id === 'q') && c && c.txt) setTimeout(later, 3000); else (window.requestIdleCallback || setTimeout)(apply); };
+        later();
+      }).catch(e => { if (key === 'data' && !ready) setStatus('品名資料載入失敗（' + e.message + '），還是可以直接打品號盤。', true); });
+    });
+    if (!ready) setStatus('品名資料載入中…（第一次比較久，之後手機會記住）');
+    want('data', parseData, (cached) => { if (!$('status').classList.contains('err')) setStatus(cached ? '' : '品名資料已更新 ' + fmt(items.size) + ' 個品號。'); });
+    want('stock', parseStock, () => { if (shown && !(document.activeElement && document.activeElement.id === 'qty')) renderItem(); });
   }
   function findByCode(code) {
     const c = code.toUpperCase();
@@ -530,31 +542,44 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     if (!isFinite(qty)) { setStatus('數量要是數字（可以有小數，計量品用）。', true); return; }
     if (qty > 100000) { setStatus('數量太大，請確認。', true); return; }
     const q = queue(); q.push({ qid: 'Q' + Date.now() + Math.random().toString(36).slice(2, 5), sku, qty }); setQueue(q);
-    setStatus('已加入 ' + fmt(qty) + '，上傳中…');
+    setStatus('已加入 ' + fmt(qty) + '（背景上傳，可以繼續盤）');
     renderBar(); renderItem(); renderCounted(); renderActs();
     try { const i = $('q'); if (!camStream) { i.value = ''; i.focus({ preventScroll: true }); } } catch (e) {}
     await flushQueue();
   }
   let flushing = false, flushTimer = 0;
+  // 上傳：排隊的一次全部送（addMany），不用一筆一筆等雲端
   async function flushQueue() {
     if (flushing || !doc) return;
     flushing = true; clearTimeout(flushTimer);
     try {
       let q = queue();
       while (q.length) {
-        const it = q[0];
+        const batch = q.slice(0, 50);
         try {
-          const r = await call('add', { sid: doc.sid, sku: it.sku, qty: it.qty, who: me.who, device });
-          lines = r.lines; q = queue().filter(x => x.qid !== it.qid); setQueue(q);
-          setStatus('已存到雲端：' + (items.get(it.sku) || [it.sku, it.sku])[1] + ' ' + fmt(it.qty));
+          const r = await call('addMany', { sid: doc.sid, items: batch.map(x => ({ qid: x.qid, sku: x.sku, qty: x.qty })), who: me.who, device });
+          const done = new Set();
+          (r.added || []).forEach(a => { done.add(a.qid); if (a.lid) lines.push({ lid: a.lid, sku: a.sku, qty: a.qty, who: a.who, at: a.at }); else setStatus('有一筆沒存進去：' + (a.error || ''), true); });
+          q = queue().filter(x => !done.has(x.qid)); setQueue(q);
+          if (!q.length && !$('status').classList.contains('err')) setStatus('已存到雲端（' + batch.length + ' 筆）');
         } catch (e) {
-          if (e.server) { q = queue().filter(x => x.qid !== it.qid); setQueue(q); setStatus('這一筆沒存進去：' + e.message, true); continue; }
+          if (e.server) { setQueue(queue().filter(x => !batch.some(b => b.qid === x.qid))); setStatus('沒存進去：' + e.message, true); q = queue(); continue; }
           setStatus('網路不穩，' + q.length + ' 筆先存在手機，等一下自動再傳。', true);
           flushTimer = setTimeout(flushQueue, 8000);
           break;
         }
       }
-    } finally { flushing = false; if (doc) { renderBar(); renderItem(); renderCounted(); renderActs(); } }
+    } finally { flushing = false; if (doc) refreshQuiet(); }
+  }
+  // 上傳完更新畫面：正在輸入數量或品號時不重畫品號卡（以前會把打到一半的數字清掉、游標跳走）
+  function refreshQuiet() {
+    renderBar(); renderCounted(); renderActs();
+    const a = document.activeElement, typing = a && (a.id === 'qty' || a.id === 'q') && a.value;
+    if (!typing && !(a && a.id === 'qty')) renderItem(); else updateCountedCard();
+  }
+  function updateCountedCard() {
+    const s = shown && sumsBySku().get(shown); const b = document.querySelector('#itemBox .counted .r b');
+    if (b) b.textContent = s ? fmt(s.qty) : '0';
   }
   window.addEventListener('online', () => flushQueue());
 
