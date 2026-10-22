@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>天掌手機盤點</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* 跟「天掌門市查價」同一套顏色與字：一欄、上面掃碼、下面是這個品號的卡片，再下面是這張盤點單 */
+:root {
+  --bg: #F2F3EF; --surface: #FFFFFF; --fg: #1B1F1D; --muted: #5D6761; --line: #D8DBD4;
+  --tag: #FFD84A; --tag-ink: #1B1F1D; --accent: #0F5C4C; --accent-ink: #FFFFFF;
+  --warn: #A3331F; --warn-bg: #FBE3DD; --ok: #1E7A45; --ok-bg: #DDF1E4; --info-bg: #E4ECF6; --info: #234B7A;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-num: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121513; --surface: #1B1F1C; --fg: #ECEFEA; --muted: #9AA59E; --line: #2F3530;
+    --tag: #E5BF34; --tag-ink: #161814; --accent: #4FB39A; --accent-ink: #0D1B17;
+    --warn: #F08A74; --warn-bg: #3A1F19; --ok: #6CCB93; --ok-bg: #18301F; --info-bg: #1A2633; --info: #9CC0EA; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121513; --surface: #1B1F1C; --fg: #ECEFEA; --muted: #9AA59E; --line: #2F3530;
+  --tag: #E5BF34; --tag-ink: #161814; --accent: #4FB39A; --accent-ink: #0D1B17;
+  --warn: #F08A74; --warn-bg: #3A1F19; --ok: #6CCB93; --ok-bg: #18301F; --info-bg: #1A2633; --info: #9CC0EA; color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 40px;
+}
+.wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 14px; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px 6px; display: grid; gap: 8px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; }
+.who { font: inherit; font-size: 0.85rem; font-weight: 500; padding: 4px 10px; border-radius: 999px; background: var(--surface); color: var(--fg); border: 1px solid var(--line); cursor: pointer; }
+.who b { color: var(--accent); }
+.docbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; color: var(--muted); }
+.docbar .sid { font-family: var(--font-num); font-size: 1.05rem; font-weight: 600; color: var(--fg); letter-spacing: 0.03em; }
+.pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; background: var(--info-bg); color: var(--info); }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.tag { background: var(--tag); color: var(--tag-ink); }
+
+button, .btn { font: inherit; font-weight: 700; border: 0; border-radius: 10px; cursor: pointer; padding: 12px 16px; background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.ghost { background: var(--surface); color: var(--fg); border: 1px solid var(--line); }
+button.danger { background: var(--surface); color: var(--warn); border: 1px solid var(--line); font-weight: 500; }
+button.big { width: 100%; padding-block: 15px; font-size: 1.05rem; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
+input[type=text] { min-width: 0; width: 100%; font: inherit; font-size: 1.1rem; padding: 12px 14px; border: 2px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); }
+input[type=text]:focus { outline: none; border-color: var(--accent); }
+.lbl { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; margin-bottom: 4px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 10px; }
+.card h2 { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
+.stores { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.stores button { background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 10px 6px; font-weight: 700; }
+.stores button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.doclist { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.docrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 10px 12px; background: var(--surface); color: var(--fg); border: 0; border-bottom: 1px solid var(--line); border-radius: 0; text-align: left; font-weight: 400; width: 100%; }
+.docrow:last-child { border-bottom: 0; }
+.docrow small { color: var(--muted); font-size: 0.8rem; display: block; }
+.empty { color: var(--muted); font-size: 0.92rem; }
+
+form.scan { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+#q { font-family: var(--font-num); font-size: 1.35rem; letter-spacing: 0.04em; font-weight: 600; }
+.btn.cam { width: 100%; padding-block: 14px; font-size: 1.05rem; }
+.btn.cam svg { width: 22px; height: 22px; }
+.btn.photo { width: 100%; background: var(--surface); color: var(--fg); border: 2px dashed var(--line); font-weight: 500; }
+#photo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.cambox { position: relative; border-radius: 12px; overflow: hidden; background: #000; aspect-ratio: 2 / 1; }
+.cambox video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cambox .aim { position: absolute; left: 14%; right: 14%; top: 12%; bottom: 18%; border: 3px solid var(--tag); border-radius: 10px; box-shadow: 0 0 0 999px rgba(0,0,0,0.35); transition: border-color .15s; }
+.cambox .aim.hit { border-color: #3BD18A; }
+.camclose { position: absolute; top: 8px; right: 8px; padding: 6px 12px; font-size: 0.85rem; border-radius: 999px; background: rgba(0,0,0,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.5); }
+.cam-on #scanForm, .cam-on .btn.photo, .cam-on #camBtn { display: none; }
+#status { color: var(--muted); font-size: 0.9rem; min-height: 1.4em; }
+#status.err { color: var(--warn); }
+
+/* 品號卡：品名 → 各店庫存（昨天報表）→ 本單已盤 → 輸入數量 */
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; }
+.item .info { padding: 14px 16px 10px; display: grid; gap: 4px; }
+.item .name { font-size: 1.2rem; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.item .spec, .item .meta { color: var(--muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.item .meta b { font-family: var(--font-num); font-size: 1.05rem; color: var(--fg); letter-spacing: 0.03em; }
+.stock { padding: 8px 16px 10px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.stock .cap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.75rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
+.stock .cap span:last-child { font-weight: 400; letter-spacing: 0; }
+.cells { display: grid; grid-template-columns: repeat(auto-fit, minmax(46px, 1fr)); gap: 4px; }
+.st { border: 1px solid transparent; border-radius: 8px; background: var(--bg); padding: 3px 0 4px; display: grid; justify-items: center; }
+.st small { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+.st b { font-family: var(--font-num); font-size: 1.2rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.st.zero b, .st.zero small { opacity: 0.4; }
+.st.neg b { color: var(--warn); }
+.st.mine { border-color: var(--accent); background: var(--surface); }
+.st.mine small { color: var(--accent); font-weight: 700; }
+.counted { padding: 10px 16px; border-top: 1px solid var(--line); background: var(--tag); color: var(--tag-ink); display: grid; gap: 4px; }
+.counted .r { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.counted .r span { font-size: 0.85rem; font-weight: 700; }
+.counted .r b { font-family: var(--font-num); font-size: 2.2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.counted .ents { display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.82rem; }
+.ent { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.65); color: #1B1F1D; font-variant-numeric: tabular-nums; }
+.ent button { padding: 0 6px; background: transparent; color: #A3331F; font-weight: 700; border-radius: 999px; }
+.ent.q { opacity: 0.7; font-style: italic; }
+.addbar { padding: 12px 16px 14px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+#qty { font-family: var(--font-num); font-size: 1.6rem; font-weight: 700; text-align: right; }
+
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.list h2 { margin: 0; padding: 10px 14px; font-size: 0.82rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; }
+.lrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 14px; border-bottom: 1px solid var(--line); align-items: center; background: transparent; color: var(--fg); border-radius: 0; font-weight: 400; text-align: left; width: 100%; border-left: 0; border-right: 0; border-top: 0; }
+.lrow:last-child { border-bottom: 0; }
+.lrow .t { min-width: 0; overflow-wrap: anywhere; }
+.lrow .t small { display: block; color: var(--muted); font-size: 0.78rem; }
+.lrow .n { font-family: var(--font-num); font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 庫存異常追蹤表 */
+.trk { display: grid; gap: 10px; }
+.trk .sum { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; color: var(--muted); }
+.trk .sum b { color: var(--fg); }
+.tcard { background: var(--surface); border: 1px solid var(--line); border-left: 6px solid var(--warn); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
+.tcard.plus { border-left-color: var(--info); }
+.tcard .tn { font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.tcard .tn small { display: block; color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+.nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.nums div { background: var(--bg); border-radius: 8px; padding: 4px 8px; display: grid; }
+.nums small { font-size: 0.72rem; color: var(--muted); }
+.nums b { font-family: var(--font-num); font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.nums .d b { color: var(--warn); }
+.tcard.plus .nums .d b { color: var(--info); }
+.clues { margin: 0; padding-left: 1.2em; display: grid; gap: 3px; font-size: 0.9rem; }
+.clues li::marker { color: var(--muted); }
+.tacts { display: flex; gap: 8px; flex-wrap: wrap; }
+.tacts button { padding: 8px 12px; font-size: 0.9rem; }
+
+.banner { border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; background: var(--info-bg); color: var(--info); }
+.banner b { font-size: 1.05rem; }
+.banner.ok { background: var(--ok-bg); color: var(--ok); }
+.banner.warn { background: var(--warn-bg); color: var(--warn); }
+.banner .docno { font-family: var(--font-num); font-size: 1.8rem; font-weight: 700; letter-spacing: 0.03em; color: var(--fg); }
+.acts { display: grid; gap: 8px; }
+.acts2 { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+dialog { border: 0; border-radius: 14px; padding: 18px; width: min(92vw, 440px); background: var(--surface); color: var(--fg); }
+dialog::backdrop { background: rgba(0,0,0,0.45); }
+dialog h3 { margin: 0 0 8px; font-size: 1.1rem; }
+dialog .body { font-size: 0.95rem; display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
+dialog .dacts { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
+footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>天掌手機盤點</h1>
+      <button type="button" class="who" id="whoBtn">設定</button>
+    </div>
+    <div class="docbar" id="docbar" hidden></div>
+  </header>
+
+  <!-- 1. 選店、填名字 -->
+  <section class="card" id="vSetup" hidden>
+    <h2>哪一家店、誰在盤</h2>
+    <div class="stores" id="storeBtns"></div>
+    <div><label class="lbl" for="whoIn">盤點人名字</label><input id="whoIn" type="text" autocomplete="off" placeholder="例如：俞蓉" maxlength="20"></div>
+    <button type="button" id="setupOk">好了</button>
+  </section>
+
+  <!-- 2. 這家店的盤點單 -->
+  <section class="card" id="vList" hidden>
+    <h2 id="listTitle">盤點單</h2>
+    <div id="openDocs"></div>
+    <button type="button" class="big" id="newDoc">開新的盤點單</button>
+    <div id="recentDocs"></div>
+  </section>
+
+  <!-- 3. 盤點中 -->
+  <section id="vDoc" class="wrap" style="gap:14px" hidden>
+    <div id="banner"></div>
+    <div id="scanArea">
+      <div class="wrap" style="gap:10px">
+        <button type="button" class="btn cam" id="camBtn" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
+          <span>開鏡頭掃描</span>
+        </button>
+        <div class="cambox" id="camBox" hidden>
+          <video id="cam" playsinline muted></video>
+          <div class="aim" aria-hidden="true"></div>
+          <button type="button" class="camclose" id="camClose">關閉鏡頭 ✕</button>
+        </div>
+        <form class="scan" id="scanForm" autocomplete="off">
+          <div style="grid-column:1/-1"><label class="lbl" for="q">品號／條碼</label></div>
+          <input id="q" type="text" inputmode="numeric" enterkeyhint="search" placeholder="掃條碼或輸入品號">
+          <button type="submit">查</button>
+        </form>
+        <label class="btn photo" for="photo">拍條碼照片辨識</label>
+        <input id="photo" type="file" accept="image/*" capture="environment">
+        <div id="status" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+    <div id="itemBox"></div>
+        <div id="countedBox"></div>
+    <div class="acts" id="docActs"></div>
+  </section>
+
+  <footer id="foot">各店庫存是昨天的報表數字，只給你參考哪裡可能有貨。盤完送出後，差異和原因在門市電腦的「天掌 盤點檢查」看（用掃描當下的 ERP 帳面算，含 POS 還沒日結的銷售）。</footer>
+</div>
+
+<dialog id="dlg"><h3 id="dlgT"></h3><div class="body" id="dlgB"></div><div class="dacts"><button type="button" class="ghost" id="dlgNo">取消</button><button type="button" id="dlgYes">確定</button></div></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.0.8/dist/iife/ponyfill.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const fmt = (n) => Number(n).toLocaleString('zh-TW', { maximumFractionDigits: 3 });
+  const isLocal = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const qs = new URLSearchParams(location.search);
+
+  // ---------- 網址 ----------
+  // 品名、條碼、各店庫存：沿用「天掌查價資料」Apps Script（跟查價網頁同一份，不另外放資料）
+  const PRICE_API = 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec';
+  // 盤點紀錄：「天掌手機盤點」Apps Script（tanjun.tool）。部署後把網址貼在這裡
+  const STOCKTAKE_API = 'https://script.google.com/macros/s/AKfycbzHRsHpTp8ML3S5AiS75AVtQgEuzDa0UtPL-rvFDSOMnZnfcSLtWXypsbrpZ2TvoFlRrg/exec';
+  const API = isLocal && qs.get('api') ? qs.get('api') : STOCKTAKE_API;
+  const dataUrl = (f) => isLocal && qs.get('api') ? qs.get('api').replace(/\/api$/, '/' + f) : PRICE_API + '?f=' + f + '&t=' + Date.now();
+
+  const STORES = [['0101', '田中'], ['0102', '溪湖'], ['0103', '彰化'], ['0206', '烏日'], ['0207', '豐原'], ['0199', '倉庫'], ['0104', '農機展'], ['0201', '網路']];
+  const storeName = (c) => (STORES.find(s => s[0] === c) || [c, c])[1];
+  const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+  let me = { store: ls.get('st_store', ''), who: ls.get('st_who', '') };
+  const device = (() => { let d = ls.get('st_device', ''); if (!d) { d = 'P' + Math.random().toString(36).slice(2, 8); ls.set('st_device', d); } return d; })();
+
+  function setStatus(msg, err) { $('status').textContent = msg || ''; $('status').classList.toggle('err', !!err); }
+
+  // ---------- 品名＋條碼＋各店庫存（跟查價網頁同一份資料，手機存一份）----------
+  const items = new Map(), barcodes = new Map(), stock = new Map();
+  let ready = false, stockDate = '';
+  const idb = (mode, fn) => new Promise((ok, no) => {
+    try {
+      const rq = indexedDB.open('tanjunStocktake', 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+      rq.onsuccess = () => { const t = rq.result.transaction('kv', mode); const q = fn(t.objectStore('kv')); t.oncomplete = () => ok(q && q.result); t.onerror = () => no(t.error); };
+      rq.onerror = () => no(rq.error);
+    } catch (e) { no(e); }
+  });
+  const getText = (f, n = 0) => {
+    const ac = window.AbortController ? new AbortController() : null;
+    const timer = ac ? setTimeout(() => ac.abort(), 90000) : 0;
+    return fetch(dataUrl(f), { cache: 'no-store', signal: ac ? ac.signal : undefined })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .finally(() => clearTimeout(timer))
+      .catch(e => n < 2 ? new Promise(ok => setTimeout(ok, 1500 * (n + 1))).then(() => getText(f, n + 1)) : Promise.reject(e));
+  };
+  function parseData(txt) {
+    items.clear(); barcodes.clear();
+    let inBc = false, inQ = false;
+    for (const ln of txt.split('\n')) {
+      if (!ln || ln[0] === '#') continue;
+      if (ln === '@') { inBc = true; continue; }
+      if (ln === '!') { inQ = true; continue; }
+      if (inQ) continue;
+      const p = ln.split('\t');
+      if (inBc) { const k = p[0].toUpperCase(); if (!barcodes.has(k)) barcodes.set(k, []); barcodes.get(k).push(p[1]); }
+      else items.set(p[0].toUpperCase(), p);
+    }
+    ready = true;
+  }
+  function parseStock(txt) {
+    stock.clear();
+    for (const ln of txt.split('\n')) {
+      if (!ln) continue;
+      const p = ln.split('\t');
+      if (p[0] === '#') { stockDate = p[1] || ''; continue; }
+      stock.set(p[0].toUpperCase(), (p[1] || '').split(',').map(Number));
+    }
+  }
+  function loadData() {
+    idb('readonly', s => s.get('data')).then(c => { if (c && c.txt && !ready) { parseData(c.txt); setStatus('品名資料用手機存的，正在更新…'); } }).catch(() => {});
+    idb('readonly', s => s.get('stock')).then(c => { if (c && c.txt && !stock.size) parseStock(c.txt); }).catch(() => {});
+    getText('data').then(t => { parseData(t); idb('readwrite', s => s.put({ txt: t, at: Date.now() }, 'data')).catch(() => {}); if (!$('status').classList.contains('err')) setStatus('品名資料已載入 ' + fmt(items.size) + ' 個品號。'); })
+      .catch(e => { if (!ready) setStatus('品名資料載入失敗（' + e.message + '），還是可以直接打品號盤。', true); });
+    getText('stock').then(t => { parseStock(t); idb('readwrite', s => s.put({ txt: t, at: Date.now() }, 'stock')).catch(() => {}); if (shown) renderItem(); }).catch(() => {});
+  }
+  function findByCode(code) {
+    const c = code.toUpperCase();
+    if (items.has(c)) return [c];
+    for (const t of [c, '0' + c, c.replace(/^0+/, '')]) if (barcodes.has(t)) return barcodes.get(t).map(x => x.toUpperCase());
+    return [];
+  }
+
+  // ---------- 盤點紀錄 API ----------
+  async function call(a, body, tries = 1) {
+    const ac = window.AbortController ? new AbortController() : null;
+    const timer = ac ? setTimeout(() => ac.abort(), 45000) : 0;
+    try {
+      const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ a }, body)), signal: ac ? ac.signal : undefined, redirect: 'follow', cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (!j.ok) { const e = new Error(j.error || '失敗'); e.server = true; throw e; }
+      return j;
+    } catch (e) {
+      if (!e.server && tries > 1) { await new Promise(ok => setTimeout(ok, 1500)); return call(a, body, tries - 1); }
+      if (e.name === 'AbortError') throw new Error('網路等太久沒回應');
+      throw e;
+    } finally { clearTimeout(timer); }
+  }
+
+  // ---------- 狀態 ----------
+  let doc = null, lines = [], shown = null, poll = 0;
+  const qKey = () => 'st_q_' + (doc ? doc.sid : '');
+  const queue = () => { try { return JSON.parse(ls.get(qKey(), '[]')); } catch (e) { return []; } };
+  const setQueue = (q) => q.length ? ls.set(qKey(), JSON.stringify(q)) : ls.del(qKey());
+  const editable = () => doc && doc.status === '盤點中';
+
+  function sumsBySku() {
+    const m = new Map();
+    const addOne = (sku, qty, ent) => { const k = sku.toUpperCase(); if (!m.has(k)) m.set(k, { sku: k, qty: 0, ents: [] }); const s = m.get(k); s.qty += Number(qty); s.ents.push(ent); };
+    lines.forEach(l => addOne(l.sku, l.qty, { lid: l.lid, qty: l.qty, at: l.at, who: l.who }));
+    queue().forEach(q => addOne(q.sku, q.qty, { qid: q.qid, qty: q.qty, queued: true }));
+    return m;
+  }
+
+  // ---------- 畫面 ----------
+  function show(view) { ['vSetup', 'vList', 'vDoc'].forEach(v => $(v).hidden = v !== view); }
+  function renderWho() {
+    $('whoBtn').innerHTML = '';
+    if (me.store && me.who) { const b = el('b', null, storeName(me.store)); $('whoBtn').append(b, document.createTextNode(' ' + me.who)); }
+    else $('whoBtn').textContent = '設定';
+  }
+  function renderSetup() {
+    show('vSetup'); $('docbar').hidden = true;
+    const box = $('storeBtns'); box.innerHTML = '';
+    STORES.forEach(([c, n]) => { const b = el('button', null, n); b.type = 'button'; b.setAttribute('aria-pressed', String(c === me.store)); b.onclick = () => { me.store = c; renderSetup(); }; box.appendChild(b); });
+    $('whoIn').value = me.who;
+  }
+  $('setupOk').onclick = () => {
+    const w = $('whoIn').value.trim();
+    if (!me.store) { alertBox('請先選店'); return; }
+    if (!w) { alertBox('請填盤點人名字'); $('whoIn').focus(); return; }
+    me.who = w; ls.set('st_store', me.store); ls.set('st_who', me.who); renderWho(); openList();
+  };
+  $('whoBtn').onclick = () => { stopCam(); stopPoll(); doc = null; renderSetup(); };
+
+  async function openList() {
+    stopPoll(); doc = null; show('vList'); $('docbar').hidden = true;
+    $('listTitle').textContent = storeName(me.store) + ' 的盤點單';
+    $('openDocs').innerHTML = ''; $('openDocs').appendChild(el('div', 'empty', '讀取中…'));
+    $('recentDocs').innerHTML = '';
+    try {
+      const r = await call('list', { store: me.store }, 2);
+      const box = $('openDocs'); box.innerHTML = '';
+      if (r.docs.length) {
+        const dl = el('div', 'doclist');
+        r.docs.forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
+          const t = el('div'); t.append(el('span', null, d.sid), el('small', null, d.opener + ' 開單 ' + shortT(d.openedAt)));
+          b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid); dl.appendChild(b); });
+        box.append(el('div', 'empty', '還沒處理完的（同一間店可以多人一起盤同一張）：'), dl);
+      } else box.appendChild(el('div', 'empty', '目前沒有還沒處理完的盤點單。'));
+      if (r.recent.length) {
+        const rb = $('recentDocs'); rb.appendChild(el('div', 'empty', '最近開出盤點異動單的：'));
+        const dl = el('div', 'doclist');
+        r.recent.slice().reverse().forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
+          const t = el('div'); t.append(el('span', null, d.sid), el('small', null, (d.docno ? 'A113-' + d.docno + '　' : '') + shortT(d.importedAt)));
+          b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid); dl.appendChild(b); });
+        rb.appendChild(dl);
+      }
+    } catch (e) { $('openDocs').innerHTML = ''; $('openDocs').appendChild(el('div', 'empty', '讀不到盤點單（' + e.message + '）。請確認網路，再按上面的店名重試。')); }
+  }
+  $('newDoc').onclick = async () => {
+    $('newDoc').disabled = true;
+    try { const r = await call('open', { store: me.store, who: me.who }); await openDoc(r.doc.sid); }
+    catch (e) { alertBox('開不了新單：' + e.message); }
+    finally { $('newDoc').disabled = false; }
+  };
+
+  function pill(status) {
+    const cls = { '盤點中': 'tag', '已送出': '', '處理中': '', '已匯入': 'ok', '作廢': '' }[status] || '';
+    return el('span', 'pill ' + cls, status);
+  }
+  const shortT = (t) => t ? String(t).slice(5, 16).replace('T', ' ').replace('-', '/') : '';
+
+  async function openDoc(sid) {
+    show('vDoc');
+    try { const r = await call('get', { sid }, 2); applyFull(r); }
+    catch (e) { alertBox('讀不到這張單：' + e.message); openList(); return; }
+    ls.set('st_last_' + me.store, sid);
+    flushQueue();
+  }
+  function applyFull(r) {
+    doc = r.doc; lines = r.lines || [];
+    renderDoc();
+    if (doc.status === '已送出' || doc.status === '處理中') startPoll(); else stopPoll();
+  }
+  function renderBar() {
+    const bar = $('docbar'); bar.hidden = false; bar.innerHTML = '';
+    const back = el('button', 'who', '‹ 盤點單'); back.type = 'button'; back.onclick = () => { stopCam(); openList(); };
+    const mid = el('span'); mid.append(el('span', 'sid', doc.sid), document.createTextNode('　' + sumsBySku().size + ' 項'));
+    bar.append(back, mid, pill(doc.status));
+  }
+  function renderDoc() {
+    renderBar();
+    renderBanner();
+    $('scanArea').hidden = !editable();
+    if (!editable()) stopCam();
+    renderItem(); renderCounted(); renderActs();
+  }
+  function renderBanner() {
+    const b = $('banner'); b.innerHTML = '';
+    const mk = (cls, title, body) => { const d = el('div', 'banner ' + cls); d.appendChild(el('b', null, title)); if (body) (Array.isArray(body) ? body : [body]).forEach(x => d.appendChild(typeof x === 'string' ? el('div', null, x) : x)); b.appendChild(d); };
+    if (doc.msg && doc.status === '盤點中') mk('warn', doc.msg);
+    if (doc.status === '已送出') mk('', '已送出，等門市電腦處理', '請到門市電腦打開「天掌 盤點檢查」，查差異和原因、開出盤點異動單。這張單手機上不能再改；要重盤請在門市電腦按「退回手機重盤」。');
+    if (doc.status === '處理中') mk('', '門市電腦處理中' + (doc.handler ? '（' + doc.handler + '）' : ''), '正在查差異和原因。要重盤請在門市電腦按「退回手機重盤」。');
+    if (doc.status === '已匯入') { const n = el('div', 'docno', doc.docno ? 'A113-' + doc.docno : '（沒有盤差，不用開單）'); mk('ok', '已開出盤點異動單', [n, doc.docno ? '請盤點人把這個單號傳給老闆確認。' : '']); }
+    if (doc.status === '作廢') mk('warn', '這張盤點單已作廢');
+  }
+
+  // 品號卡
+  function lookup(raw) {
+    const code = String(raw || '').trim();
+    if (!code) return;
+    if (/^https?:\/\//i.test(code)) { setStatus('掃到的是網址，不是品號。', true); return; }
+    const hits = findByCode(code);
+    if (hits.length === 1) { shown = hits[0]; setStatus(''); renderItem(true); return; }
+    if (hits.length > 1) { setStatus(''); renderPick(hits, '這個條碼對到 ' + hits.length + ' 個品號，選一個'); return; }
+    if (!ready) { shown = code.toUpperCase(); setStatus('品名資料還沒載入，先用你打的品號「' + code + '」盤。'); renderItem(true); return; }
+    const up = code.toUpperCase();
+    const pre = up.length >= 4 ? Array.from(items.keys()).filter(k => k.startsWith(up)).slice(0, 30) : [];
+    if (pre.length) { renderPick(pre, '品號開頭是 ' + code + ' 的'); return; }
+    shown = null; renderItem();
+    setStatus('查不到品號或條碼「' + code + '」。條碼可能沒建在 ERP，請改打品號。', true);
+  }
+  function renderPick(skus, title) {
+    shown = null;
+    const box = $('itemBox'); box.innerHTML = '';
+    const l = el('div', 'list'); const h = el('h2'); h.appendChild(el('span', null, title)); l.appendChild(h);
+    skus.forEach(k => { const p = items.get(k) || [k, '']; const b = el('button', 'lrow'); b.type = 'button';
+      const t = el('div', 't'); t.append(el('span', null, p[1] || k), el('small', null, k + (p[2] ? '　' + p[2] : '')));
+      b.append(t, el('span')); b.onclick = () => { shown = k; renderItem(true); }; l.appendChild(b); });
+    box.appendChild(l);
+  }
+  function renderItem(focusQty) {
+    const box = $('itemBox'); box.innerHTML = '';
+    if (!shown || !doc) return;
+    const p = items.get(shown) || [shown, '（品名資料裡沒有這個品號）', '', '', ''];
+    const card = el('article', 'item');
+    const info = el('div', 'info');
+    info.appendChild(el('div', 'name', p[1]));
+    if (p[2]) info.appendChild(el('div', 'spec', p[2]));
+    const meta = el('div', 'meta'); meta.append(document.createTextNode('品號 '), el('b', null, p[0]), document.createTextNode(p[3] ? '　單位 ' + p[3] : '')); info.appendChild(meta);
+    card.appendChild(info);
+    // 各店庫存（昨天報表）：本店加框
+    const st = el('div', 'stock'); const cap = el('div', 'cap'); cap.append(el('span', null, '各店庫存（帳面，參考用）'), el('span', null, stockDate ? '報表 ' + stockDate : '')); st.appendChild(cap);
+    const v = stock.get(shown) || [];
+    const cells = el('div', 'cells');
+    STORES.forEach(([c, n], i) => { const q = Number(v[i]) || 0; if (i >= 6 && !q && c !== me.store) return;
+      const d = el('div', 'st' + (q === 0 ? ' zero' : '') + (q < 0 ? ' neg' : '') + (c === doc.store ? ' mine' : ''));
+      d.append(el('small', null, c === doc.store ? n + '★' : n), el('b', null, fmt(q))); cells.appendChild(d); });
+    st.appendChild(cells); card.appendChild(st);
+    // 本單已盤
+    const s = sumsBySku().get(shown);
+    const cb = el('div', 'counted');
+    const r = el('div', 'r'); r.append(el('span', null, '這張單已盤（合計）'), el('b', null, s ? fmt(s.qty) : '0')); cb.appendChild(r);
+    if (s && s.ents.length) {
+      const ents = el('div', 'ents');
+      s.ents.forEach(e => { const t = el('span', 'ent' + (e.queued ? ' q' : ''), fmt(e.qty) + (e.queued ? ' 未上傳' : '') + (e.who && e.who !== me.who ? '（' + e.who + '）' : ''));
+        if (editable() && !e.queued) { const x = el('button', null, '×'); x.type = 'button'; x.setAttribute('aria-label', '刪掉這一筆 ' + e.qty); x.onclick = () => delLine(e.lid, e.qty); t.appendChild(x); }
+        ents.appendChild(t); });
+      cb.appendChild(ents);
+    }
+    card.appendChild(cb);
+    if (editable()) {
+      const ab = el('form', 'addbar'); ab.autocomplete = 'off';
+      const w = el('div'); const lb = el('label', 'lbl', s ? '再加一筆（會累加）' : '實際數量'); lb.htmlFor = 'qty';
+      const inp = el('input'); inp.type = 'text'; inp.id = 'qty'; inp.inputMode = 'decimal'; inp.enterKeyHint = 'done'; inp.placeholder = '0';
+      w.append(lb, inp);
+      const add = el('button', null, '加入'); add.type = 'submit';
+      ab.append(w, add);
+      ab.onsubmit = (e) => { e.preventDefault(); addLine(shown, inp.value); };
+      card.appendChild(ab);
+      box.appendChild(card);
+      if (focusQty && !camStream) setTimeout(() => { try { inp.focus(); } catch (e) {} }, 30);
+      else if (focusQty) setTimeout(() => { try { inp.focus({ preventScroll: true }); } catch (e) {} }, 30);
+    } else box.appendChild(card);
+  }
+
+  // 已盤清單
+  function renderCounted() {
+    const box = $('countedBox'); box.innerHTML = '';
+    const sm = sumsBySku();
+    if (!sm.size) { if (editable()) box.appendChild(el('div', 'empty', '還沒盤到任何品號。掃條碼或打品號，輸入數量按「加入」。同一個品號放在好幾個地方，分開掃、分開加，會自動累加。')); return; }
+    const l = el('div', 'list'); const h = el('h2'); h.append(el('span', null, '已盤 ' + sm.size + ' 項'), el('span', null, '點一下看明細')); l.appendChild(h);
+    Array.from(sm.values()).reverse().forEach(s => { const p = items.get(s.sku) || [s.sku, s.sku];
+      const b = el('button', 'lrow'); b.type = 'button';
+      const t = el('div', 't'); t.append(el('span', null, p[1]), el('small', null, s.sku + '　' + s.ents.length + ' 筆' + (s.ents.some(e => e.queued) ? '（有未上傳）' : '')));
+      b.append(t, el('span', 'n', fmt(s.qty))); b.onclick = () => { shown = s.sku; renderItem(); window.scrollTo({ top: 0, behavior: 'smooth' }); }; l.appendChild(b); });
+    box.appendChild(l);
+  }
+
+  const shortT2 = shortT;
+  function renderActs() {
+    const box = $('docActs'); box.innerHTML = '';
+    if (!editable()) { const b = el('button', 'ghost big', '回盤點單列表'); b.type = 'button'; b.onclick = openList; box.appendChild(b); return; }
+    const ck = el('button', 'big', '盤完了，送出'); ck.type = 'button'; ck.onclick = submitDoc;
+    box.appendChild(ck);
+    const a2 = el('div', 'acts2');
+    const rf = el('button', 'ghost', '重新整理'); rf.type = 'button'; rf.onclick = () => openDoc(doc.sid);
+    const cx = el('button', 'danger', '作廢這張單'); cx.type = 'button'; cx.onclick = cancelDoc;
+    a2.append(rf, cx); box.appendChild(a2);
+  }
+
+  // ---------- 動作 ----------
+  function parseQty(v) {
+    const s = String(v).trim().replace(/[，,]/g, '');
+    if (!/^\d+(\.\d{1,3})?$/.test(s)) return NaN;
+    return Number(s);
+  }
+  async function addLine(sku, v) {
+    const qty = parseQty(v);
+    if (!isFinite(qty)) { setStatus('數量要是數字（可以有小數，計量品用）。', true); return; }
+    if (qty > 100000) { setStatus('數量太大，請確認。', true); return; }
+    const q = queue(); q.push({ qid: 'Q' + Date.now() + Math.random().toString(36).slice(2, 5), sku, qty }); setQueue(q);
+    setStatus('已加入 ' + fmt(qty) + '，上傳中…');
+    renderBar(); renderItem(); renderCounted(); renderActs();
+    try { const i = $('q'); if (!camStream) { i.value = ''; i.focus({ preventScroll: true }); } } catch (e) {}
+    await flushQueue();
+  }
+  let flushing = false, flushTimer = 0;
+  async function flushQueue() {
+    if (flushing || !doc) return;
+    flushing = true; clearTimeout(flushTimer);
+    try {
+      let q = queue();
+      while (q.length) {
+        const it = q[0];
+        try {
+          const r = await call('add', { sid: doc.sid, sku: it.sku, qty: it.qty, who: me.who, device });
+          lines = r.lines; q = queue().filter(x => x.qid !== it.qid); setQueue(q);
+          setStatus('已存到雲端：' + (items.get(it.sku) || [it.sku, it.sku])[1] + ' ' + fmt(it.qty));
+        } catch (e) {
+          if (e.server) { q = queue().filter(x => x.qid !== it.qid); setQueue(q); setStatus('這一筆沒存進去：' + e.message, true); continue; }
+          setStatus('網路不穩，' + q.length + ' 筆先存在手機，等一下自動再傳。', true);
+          flushTimer = setTimeout(flushQueue, 8000);
+          break;
+        }
+      }
+    } finally { flushing = false; if (doc) { renderBar(); renderItem(); renderCounted(); renderActs(); } }
+  }
+  window.addEventListener('online', () => flushQueue());
+
+  async function delLine(lid, qty) {
+    if (!(await confirmBox('刪掉這一筆？', '數量 ' + fmt(qty) + '（打錯的那一筆）'))) return;
+    try { const r = await call('del', { sid: doc.sid, lid }); lines = r.lines; setStatus('已刪掉。'); renderBar(); renderItem(); renderCounted(); renderActs(); }
+    catch (e) { setStatus('刪不掉：' + e.message, true); }
+  }
+  async function submitDoc() {
+    if (queue().length) { await flushQueue(); if (queue().length) { alertBox('還有 ' + queue().length + ' 筆沒上傳，網路好了再送。'); return; } }
+    const n = sumsBySku().size;
+    if (!(await confirmBox('盤完了，送出？', n + ' 個品號。送出後手機不能再改，請到門市電腦的「天掌 盤點檢查」查差異、開單。', '送出'))) return;
+    try { const r = await call('submit', { sid: doc.sid, who: me.who }); applyFull(r); }
+    catch (e) { alertBox('送不出去：' + e.message); }
+  }
+  async function cancelDoc() {
+    if (!(await confirmBox('作廢這張盤點單？', '盤的數字都不會進 ERP。', '作廢'))) return;
+    try { await call('cancel', { sid: doc.sid, who: me.who }); openList(); }
+    catch (e) { alertBox('作廢失敗：' + e.message); }
+  }
+  function startPoll() { stopPoll(); poll = setInterval(async () => { if (!doc || document.hidden) return; try { const r = await call('get', { sid: doc.sid }); if (r.doc.status !== doc.status) applyFull(r); } catch (e) {} }, 30000); }
+  function stopPoll() { if (poll) clearInterval(poll); poll = 0; }
+
+  // 確認框（不用瀏覽器內建 alert）
+  function confirmBox(title, body, yes) {
+    return new Promise(ok => {
+      const d = $('dlg'); $('dlgT').textContent = title; const b = $('dlgB'); b.innerHTML = '';
+      (Array.isArray(body) ? body : [body]).forEach(x => b.appendChild(el('div', null, x)));
+      $('dlgYes').textContent = yes || '確定'; $('dlgNo').hidden = false;
+      const done = (v) => { d.close(); $('dlgYes').onclick = $('dlgNo').onclick = null; ok(v); };
+      $('dlgYes').onclick = () => done(true); $('dlgNo').onclick = () => done(false); d.oncancel = (e) => { e.preventDefault(); done(false); };
+      d.showModal();
+    });
+  }
+  function alertBox(msg) { confirmBox(msg, '', '知道了'); $('dlgNo').hidden = true; }
+
+  // ---------- 掃碼（跟查價網頁同一套：手機內建 → zxing-cpp → ZXing JS）----------
+  $('scanForm').onsubmit = (e) => { e.preventDefault(); lookup($('q').value); };
+  const FORMATS = ['code_128', 'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_39', 'itf', 'qr_code'];
+  let _det = null;
+  async function getDetector() {
+    if (_det !== null) return _det;
+    try { if ('BarcodeDetector' in window) { const s = await window.BarcodeDetector.getSupportedFormats(); if (s.includes('code_128') && s.includes('qr_code')) return (_det = new window.BarcodeDetector({ formats: FORMATS })); } } catch (e) {}
+    try { if (window.BarcodeDetectionAPI) return (_det = new window.BarcodeDetectionAPI.BarcodeDetector({ formats: FORMATS })); } catch (e) {}
+    return (_det = false);
+  }
+  function zxReader() {
+    if (!window.ZXing) return null;
+    const Z = window.ZXing, hints = new Map();
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF, Z.BarcodeFormat.QR_CODE]);
+    const r = new Z.MultiFormatReader(); r.setHints(hints); return r;
+  }
+  $('photo').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    setStatus('辨識中…');
+    try {
+      const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('照片讀不到')); i.src = URL.createObjectURL(f); });
+      let code = null; const det = await getDetector();
+      if (det) { try { const r = await det.detect(img); if (r && r.length) code = r[0].rawValue; } catch (x) {} }
+      if (!code) { const rd = zxReader(); if (rd) { const c = document.createElement('canvas'); const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)); c.width = img.naturalWidth * s; c.height = img.naturalHeight * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        try { const Z = window.ZXing; code = rd.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(c)))).getText(); } catch (x) {} } }
+      if (!code) { setStatus('照片裡找不到條碼。靠近一點、讓條碼橫躺在中間再拍一次，或直接打品號。', true); return; }
+      $('q').value = code; lookup(code);
+    } catch (err) { setStatus('辨識失敗：' + err.message, true); }
+  });
+  var camStream = null; let camTimer = 0, lastCode = '', lastAt = 0, detector = null, camReader = null;
+  if (location.protocol === 'https:' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) $('camBtn').hidden = false;
+  if (isLocal && qs.get('cam') === '1') $('camBtn').hidden = false;
+  function stopCam() {
+    if (camTimer) { clearTimeout(camTimer); camTimer = 0; }
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    $('camBox').hidden = true; document.body.classList.remove('cam-on');
+  }
+  async function startCam() {
+    try { camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }); }
+    catch (e) { camStream = null; setStatus('鏡頭開不起來（' + (e.name === 'NotAllowedError' ? '沒有允許使用相機' : (e.name || '錯誤')) + '）。可以改用拍照或打品號。', true); return; }
+    const v = $('cam'); v.srcObject = camStream; try { await v.play(); } catch (e) {}
+    $('camBox').hidden = false; document.body.classList.add('cam-on'); window.scrollTo({ top: 0 });
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    detector = (await getDetector()) || null; if (!detector && !camReader) camReader = zxReader();
+    setStatus('鏡頭已開，條碼對進黃框。'); scanLoop();
+  }
+  const frame = document.createElement('canvas');
+  async function scanLoop() {
+    if (!camStream) return;
+    const v = $('cam'), vw = v.videoWidth, vh = v.videoHeight; let code = null;
+    if (vw && vh) {
+      const sx = vw * 0.1, sw = vw * 0.8, sy = vh * 0.1, sh = vh * 0.8, s = Math.min(2.5, 1200 / sw);
+      frame.width = Math.round(sw * s); frame.height = Math.round(sh * s);
+      frame.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
+      try {
+        if (detector) { const r = await detector.detect(frame); if (r && r.length) code = r[0].rawValue; }
+        else if (camReader) { const Z = window.ZXing; code = camReader.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(frame)))).getText(); }
+      } catch (e) { if (camReader) camReader.reset(); }
+    }
+    const now = Date.now();
+    // 盤點時同一個條碼常常連掃：同一個碼 4 秒內不重複帶出（不會自動加數量，要按「加入」）
+    if (code && !(code === lastCode && now - lastAt < 4000)) {
+      lastCode = code; lastAt = now;
+      const aim = document.querySelector('.cambox .aim'); aim.classList.add('hit'); setTimeout(() => aim.classList.remove('hit'), 600);
+      try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+      $('q').value = String(code).trim(); lookup($('q').value);
+    }
+    camTimer = setTimeout(scanLoop, code ? 900 : 180);
+  }
+  $('camBtn').onclick = () => { if (camStream) stopCam(); else startCam(); };
+  $('camClose').onclick = stopCam;
+  document.addEventListener('visibilitychange', () => { if (document.hidden && camStream) stopCam(); if (!document.hidden && doc) flushQueue(); });
+
+  // ---------- 開始 ----------
+  if (API.indexOf('PASTE_') === 0) { document.body.innerHTML = '<div class="wrap"><div class="banner warn"><b>還沒設定盤點紀錄的網址</b><div>請聯絡老闆。</div></div></div>'; return; }
+  renderWho(); loadData();
+  if (me.store && me.who) { const last = ls.get('st_last_' + me.store, ''); if (last && qs.get('sid') !== 'none') openDoc(last).catch(() => openList()); else openList(); }
+  else renderSetup();
+})();
+</script>
+</body>
+</html>
