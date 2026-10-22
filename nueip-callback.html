@@ -2,9 +2,9 @@
 <style>body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:560px;margin:40px auto;padding:0 16px;color:#1d2420;background:#f6f7f5}footer{margin-top:32px;color:#6b756f;font-size:12px}</style></head><body>
 <h1 style="font-size:20px">NUEiP 授權完成，正在交回網拍檢核程式…</h1>
 <p id="m">如果沒有自動跳轉，請確認「網拍檢核」程式已經開著，再重新按一次授權。</p>
-<footer>版本 2026-10-23.2</footer>
+<footer>版本 2026-10-23.3</footer>
 <script>
 var q=location.search;
-if(q.indexOf('code=')>=0||q.indexOf('error=')>=0){location.replace('http://127.0.0.1:8741/callback'+q);}
+if(q.indexOf('code=')>=0||q.indexOf('error=')>=0){location.replace('http://127.0.0.1:8742/callback'+q);}
 else{document.getElementById('m').textContent='這個頁面只在 NUEiP 授權後使用，網址裡沒有授權碼。';}
 </script></body></html>
