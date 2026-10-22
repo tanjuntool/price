@@ -7,7 +7,8 @@
 <title>天掌手機盤點</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<!-- 字型不擋畫面：先用手機內建字，字型下載好再換（以前要等字型載完才開始畫） -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" media="print" onload="this.media='all'">
 <style>
 /* 跟「天掌門市查價」同一套顏色與字：一欄、上面掃碼、下面是這個品號的卡片，再下面是這張盤點單 */
 :root {
@@ -37,6 +38,8 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 40px;
 }
 .wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 14px; }
+/* 盤點單畫面固定滿版寬：以前內容少時會縮成窄的，讀到資料後又變寬 */
+#vDoc, #vDoc .wrap, #scanArea { width: 100%; min-width: 0; }
 header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-block: 8px 6px; display: grid; gap: 8px; }
 .brand { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; }
@@ -193,7 +196,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   <!-- 3. 盤點中 -->
   <section id="vDoc" class="wrap" style="gap:14px" hidden>
     <div id="banner"></div>
-    <div id="scanArea">
+    <div id="scanArea" hidden>
       <div class="wrap" style="gap:10px">
         <button type="button" class="btn cam" id="camBtn" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
@@ -219,13 +222,14 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     <div class="acts" id="docActs"></div>
   </section>
 
-  <footer id="foot">各店庫存是昨天的報表數字，只給你參考哪裡可能有貨。盤完送出後，差異和原因在門市電腦的「天掌 盤點檢查」看（用掃描當下的 ERP 帳面算，含 POS 還沒日結的銷售）。</footer>
+  <footer id="foot">各店庫存是昨天的報表數字，只給你參考哪裡可能有貨。盤完送出後，差異和原因在門市電腦的「天掌 盤點檢查」看（用掃描當下的 ERP 帳面算，含 POS 還沒日結的銷售）。<br>版本 2026-10-22c</footer>
 </div>
 
 <dialog id="dlg"><h3 id="dlgT"></h3><div class="body" id="dlgB"></div><div class="dacts"><button type="button" class="ghost" id="dlgNo">取消</button><button type="button" id="dlgYes">確定</button></div></dialog>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/barcode-detector@3.0.8/dist/iife/ponyfill.js"></script>
+<!-- 掃碼程式庫不擋畫面（用到鏡頭時才需要） -->
+<script defer src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/barcode-detector@3.0.8/dist/iife/ponyfill.js"></script>
 <script>
 (function () {
   const $ = (id) => document.getElementById(id);
@@ -746,7 +750,8 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   // ---------- 開始 ----------
   if (API.indexOf('PASTE_') === 0) { document.body.innerHTML = '<div class="wrap"><div class="banner warn"><b>還沒設定盤點紀錄的網址</b><div>請聯絡老闆。</div></div></div>'; return; }
   renderWho(); loadData();
-  if (me.store && me.who) { const last = ls.get('st_last_' + me.store, ''); if (last && qs.get('sid') !== 'none') openDoc(last).catch(() => openList()); else openList(); }
+  // 打開（或重新整理）一律先到盤點單清單，不自動跳進上次那張（老闆 10/22）
+  if (me.store && me.who) openList();
   else renderSetup();
 })();
 </script>
