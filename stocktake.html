@@ -155,9 +155,16 @@ dialog h3 { margin: 0 0 8px; font-size: 1.1rem; }
 dialog .body { font-size: 0.95rem; display: grid; gap: 6px; max-height: 50vh; overflow: auto; }
 dialog .dacts { margin-top: 14px; display: flex; gap: 8px; justify-content: flex-end; }
 footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
+/* 讀取中：最上面一條會跑的線＋「更新中」小字；讀取中不能重複點 */
+#loadbar { position: fixed; left: 0; right: 0; top: 0; height: 3px; z-index: 50; overflow: hidden; pointer-events: none; }
+#loadbar::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; background: var(--accent); animation: lb 1s ease-in-out infinite; }
+@keyframes lb { from { left: -40%; } to { left: 100%; } }
+.loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; padding: 6px 2px; }
+.stale { color: var(--muted); font-size: 0.8rem; }
 </style>
 </head>
 <body>
+<div id="loadbar" hidden></div>
 <div class="wrap">
   <header>
     <div class="brand">
@@ -241,6 +248,11 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   let me = { store: ls.get('st_store', ''), who: ls.get('st_who', '') };
   const device = (() => { let d = ls.get('st_device', ''); if (!d) { d = 'P' + Math.random().toString(36).slice(2, 8); ls.set('st_device', d); } return d; })();
 
+  // 上次讀到的清單、單據先存在手機：打開時馬上顯示舊的，背景再更新（雲端每次要 2～3 秒）
+  const cache = { get(k) { try { return JSON.parse(ls.get('stc_' + k, 'null')); } catch (e) { return null; } }, set(k, v) { ls.set('stc_' + k, JSON.stringify(v)); } };
+  let busyN = 0;
+  function busy(on) { busyN = Math.max(0, busyN + (on ? 1 : -1)); $('loadbar').hidden = !busyN; document.body.classList.toggle('busy', !!busyN); }
+  const spin = (txt) => { const d = el('div', 'loading'); d.append(el('span', 'spin'), el('span', null, txt)); return d; };
   function setStatus(msg, err) { $('status').textContent = msg || ''; $('status').classList.toggle('err', !!err); }
 
   // ---------- 品名＋條碼＋各店庫存（跟查價網頁同一份資料，手機存一份）----------
@@ -367,33 +379,47 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   async function openList() {
     stopPoll(); doc = null; show('vList'); $('docbar').hidden = true;
     $('listTitle').textContent = storeName(me.store) + ' 的盤點單';
-    $('openDocs').innerHTML = ''; $('openDocs').appendChild(el('div', 'empty', '讀取中…'));
-    $('recentDocs').innerHTML = '';
+    const old = cache.get('list_' + me.store);
+    if (old) renderList(old, true); else { $('openDocs').innerHTML = ''; $('openDocs').appendChild(spin('讀取中…')); $('recentDocs').innerHTML = ''; }
+    const my = (openList.seq = (openList.seq || 0) + 1);
+    busy(true);
     try {
       const r = await call('list', { store: me.store }, 2);
-      const box = $('openDocs'); box.innerHTML = '';
-      if (r.docs.length) {
-        const dl = el('div', 'doclist');
-        r.docs.forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
-          const t = el('div'); t.append(el('span', null, d.sid), el('small', null, d.opener + ' 開單 ' + shortT(d.openedAt)));
-          b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid); dl.appendChild(b); });
-        box.append(el('div', 'empty', '還沒處理完的（同一間店可以多人一起盤同一張）：'), dl);
-      } else box.appendChild(el('div', 'empty', '目前沒有還沒處理完的盤點單。'));
-      if (r.recent.length) {
-        const rb = $('recentDocs'); rb.appendChild(el('div', 'empty', '最近開出盤點異動單的：'));
-        const dl = el('div', 'doclist');
-        r.recent.slice().reverse().forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
-          const t = el('div'); t.append(el('span', null, d.sid), el('small', null, (d.docno ? 'A113-' + d.docno + '　' : '') + shortT(d.importedAt)));
-          b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid); dl.appendChild(b); });
-        rb.appendChild(dl);
+      cache.set('list_' + me.store, { docs: r.docs, recent: r.recent });
+      if (my === openList.seq && !doc && !$('vList').hidden) renderList(r, false);
+    } catch (e) {
+      if (my === openList.seq && !doc) {
+        if (old) { const n = document.querySelector('#openDocs .stale'); if (n) n.textContent = '讀不到最新的（' + e.message + '），先顯示上次的。'; }
+        else { $('openDocs').innerHTML = ''; $('openDocs').appendChild(el('div', 'empty', '讀不到盤點單（' + e.message + '）。請確認網路，再按上面的店名重試。')); }
       }
-    } catch (e) { $('openDocs').innerHTML = ''; $('openDocs').appendChild(el('div', 'empty', '讀不到盤點單（' + e.message + '）。請確認網路，再按上面的店名重試。')); }
+    } finally { busy(false); }
+  }
+  function renderList(r, stale) {
+    const box = $('openDocs'); box.innerHTML = '';
+    if (stale) box.appendChild(spin('更新中…'));
+    if (r.docs.length) {
+      const dl = el('div', 'doclist');
+      r.docs.forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
+        const t = el('div'); t.append(el('span', null, d.sid), el('small', null, d.opener + ' 開單 ' + shortT(d.openedAt)));
+        b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid, d); dl.appendChild(b); });
+      box.append(el('div', 'empty', '還沒處理完的（同一間店可以多人一起盤同一張）：'), dl);
+    } else box.appendChild(el('div', 'empty', '目前沒有還沒處理完的盤點單。'));
+    const rb = $('recentDocs'); rb.innerHTML = '';
+    if (r.recent.length) {
+      rb.appendChild(el('div', 'empty', '最近開出盤點異動單的：'));
+      const dl = el('div', 'doclist');
+      r.recent.slice().reverse().forEach(d => { const b = el('button', 'docrow'); b.type = 'button';
+        const t = el('div'); t.append(el('span', null, d.sid), el('small', null, (d.docno ? 'A113-' + d.docno + '　' : '') + shortT(d.importedAt)));
+        b.append(t, pill(d.status)); b.onclick = () => openDoc(d.sid, d); dl.appendChild(b); });
+      rb.appendChild(dl);
+    }
   }
   $('newDoc').onclick = async () => {
     $('newDoc').disabled = true;
-    try { const r = await call('open', { store: me.store, who: me.who }); await openDoc(r.doc.sid); }
+    busy(true);
+    try { const r = await call('open', { store: me.store, who: me.who }); cache.set('doc_' + r.doc.sid, { doc: r.doc, lines: [] }); const lc = cache.get('list_' + me.store) || { docs: [], recent: [] }; lc.docs.push(r.doc); cache.set('list_' + me.store, lc); openDoc(r.doc.sid, r.doc, true); }
     catch (e) { alertBox('開不了新單：' + e.message); }
-    finally { $('newDoc').disabled = false; }
+    finally { $('newDoc').disabled = false; busy(false); }
   };
 
   function pill(status) {
@@ -402,16 +428,35 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   }
   const shortT = (t) => t ? String(t).slice(5, 16).replace('T', ' ').replace('-', '/') : '';
 
-  async function openDoc(sid) {
-    show('vDoc');
-    try { const r = await call('get', { sid }, 2); applyFull(r); }
-    catch (e) { alertBox('讀不到這張單：' + e.message); openList(); return; }
-    ls.set('st_last_' + me.store, sid);
+  // 點進一張單：先用清單上的資料＋手機存的明細馬上顯示，背景再跟雲端對一次
+  async function openDoc(sid, hint, fresh) {
+    show('vDoc'); ls.set('st_last_' + me.store, sid);
+    const c = cache.get('doc_' + sid);
+    const d0 = hint || (c && c.doc);
+    if (d0) { applyFull({ doc: Object.assign({}, c && c.doc, d0), lines: (c && c.lines) || [] }, !(c && c.lines) || !fresh); }
+    else { doc = null; $('docbar').hidden = true; $('banner').innerHTML = ''; $('scanArea').hidden = true; $('itemBox').innerHTML = ''; $('docActs').innerHTML = ''; $('countedBox').innerHTML = ''; $('countedBox').appendChild(spin('讀取中…')); }
     flushQueue();
+    if (fresh) return;                                   // 剛開的新單，不用再問雲端
+    const my = (openDoc.seq = (openDoc.seq || 0) + 1);
+    busy(true);
+    try {
+      const r = await call('get', { sid }, 2);
+      cache.set('doc_' + sid, { doc: r.doc, lines: r.lines });
+      if (my === openDoc.seq && !$('vDoc').hidden && (!doc || doc.sid === sid)) {
+        const a = document.activeElement;
+        if (doc && a && (a.id === 'qty' || a.id === 'q')) { doc = r.doc; lines = r.lines; renderBanner(); $('scanArea').hidden = !editable(); refreshQuiet(); }   // 正在輸入：不重畫品號卡
+        else applyFull(r);
+      }
+    } catch (e) {
+      if (my === openDoc.seq && !d0) { alertBox('讀不到這張單：' + e.message); openList(); }
+      else if (my === openDoc.seq) setStatus('讀不到最新的（' + e.message + '），先顯示手機上次存的。', true);
+    } finally { busy(false); }
   }
-  function applyFull(r) {
+  function applyFull(r, loadingLines) {
     doc = r.doc; lines = r.lines || [];
     renderDoc();
+    if (loadingLines) { const cb = $('countedBox'); if (!lines.length) { cb.innerHTML = ''; } cb.prepend(spin('明細更新中…')); }
+    if (!loadingLines) cache.set('doc_' + doc.sid, { doc: doc, lines: lines });
     if (doc.status === '已送出' || doc.status === '處理中') startPoll(); else stopPoll();
   }
   function renderBar() {
@@ -550,7 +595,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   let flushing = false, flushTimer = 0;
   // 上傳：排隊的一次全部送（addMany），不用一筆一筆等雲端
   async function flushQueue() {
-    if (flushing || !doc) return;
+    if (flushing || !doc || !queue().length) return;
     flushing = true; clearTimeout(flushTimer);
     try {
       let q = queue();
@@ -560,7 +605,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
           const r = await call('addMany', { sid: doc.sid, items: batch.map(x => ({ qid: x.qid, sku: x.sku, qty: x.qty })), who: me.who, device });
           const done = new Set();
           (r.added || []).forEach(a => { done.add(a.qid); if (a.lid) lines.push({ lid: a.lid, sku: a.sku, qty: a.qty, who: a.who, at: a.at }); else setStatus('有一筆沒存進去：' + (a.error || ''), true); });
-          q = queue().filter(x => !done.has(x.qid)); setQueue(q);
+          q = queue().filter(x => !done.has(x.qid)); setQueue(q); cache.set('doc_' + doc.sid, { doc: doc, lines: lines });
           if (!q.length && !$('status').classList.contains('err')) setStatus('已存到雲端（' + batch.length + ' 筆）');
         } catch (e) {
           if (e.server) { setQueue(queue().filter(x => !batch.some(b => b.qid === x.qid))); setStatus('沒存進去：' + e.message, true); q = queue(); continue; }
