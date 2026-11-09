@@ -97,7 +97,7 @@ pre.msg{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);b
 <style>#reprint,#custQ,#custSel,#custDrop{display:none!important}</style>
 </head>
 <body>
-<header><b>天掌報價</b><span class="muted" id="ver"></span>
+<header><a id="backTown" hidden href="http://127.0.0.1:8745/" style="margin-right:8px;font-weight:700;text-decoration:none;color:inherit">← 回門市小鎮</a><b>天掌報價</b><span class="muted" id="ver"></span>
   <input id="reprint" placeholder="找舊報價單：A211-單號" title="輸入 ERP 報價單號按 Enter，開出那張報價單">
   <button class="sm" onclick="newQuote()">開新的一張</button>
   <button class="sm" id="pendBtn" hidden onclick="showPending()" title="手機上按「存進 ERP」的報價單，在這裡確認後寫進 ERP">待存 ERP <b id="pendN"></b></button><ul class="drop" id="pendDrop" hidden style="position:absolute;right:12px;top:52px;z-index:30;min-width:320px"></ul>
@@ -360,7 +360,8 @@ window.fetch = async (path, opt) => {
 const $=id=>document.getElementById(id);
 const fmt=n=>(n==null||isNaN(n))?'—':Math.round(n).toLocaleString('zh-TW');
 const SPECIAL='200000000001';
-let ME=null, CUST={code:'0001301',name:'零散現金'}, IMGS=[], LINES=[], DETAIL={}, OPEN={}, PICS={}, SITE={}, IMGV=Date.now();
+let ME=null; const STAFF=()=>!!(ME&&ME.role==='staff');   // 門市員工（11/09 老闆：只看業務底價＋零售價，低於底價只提醒）
+let CUST={code:'0001301',name:'零散現金'}, IMGS=[], LINES=[], DETAIL={}, OPEN={}, PICS={}, SITE={}, IMGV=Date.now();
 const STORE_ORDER=['0101','0102','0103','0206','0207','0199','0201'];
 const KEY='tanjun-quote-draft';
 const HOW={ok:['報價','會放進報價單和 LINE 訊息'],ask:['先問客人','不報價，LINE 訊息裡會問客人下面這句話'],vendor:['先確認有沒有貨','不報價，LINE 訊息寫「我們確認一下有沒有貨再回覆您」']};
@@ -371,7 +372,9 @@ async function api(path,body){
   const r=await fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
   const j=await r.json(); if(!j.ok) throw new Error(j.error||'錯誤'); return j;
 }
-(async()=>{try{ME=await api('/api/me');$('me').textContent=ME.name+'（'+ME.code+'）';$('ver').textContent='v'+ME.version;}catch(e){$('me').innerHTML='<span class="err">'+e.message+'</span>'}})();
+(async()=>{try{ME=await api('/api/me');$('me').textContent=ME.name+(ME.code?'（'+ME.code+'）':'');$('ver').textContent='v'+ME.version;
+  if(STAFF()){$('btnTpl').hidden=true;const sm=document.querySelector('#tplBox summary');if(sm)sm.textContent='常用句子（主管設定，員工只能看）';}
+  try{if(LINES.length)draw()}catch(e){}}catch(e){$('me').innerHTML='<span class="err">'+e.message+'</span>'}})();
 
 // ---- 草稿：存在這台電腦的瀏覽器，重新整理不會不見 ----
 const FIELDS=['cname','contact','tel','pay','remark','txt','taxType'];
@@ -484,6 +487,8 @@ function card(l,i){
   if(l.status==='ok'){
     let flag='';
     if(l.special) flag='<span class="flag-warn">ERP 沒有成本：請先查現在的網購價，報價不能低於網路價</span>';
+    else if(x&&l.price!=null&&STAFF()){const n=net(l.price);
+      flag=(x.floor>0&&n<x.floor)?`<span class="flag-warn">低於業務底價 ${fmt(x.floor)}（未稅），請主管確認</span>`:(x.floor>0?`<span class="flag-ok">不低於業務底價</span>`:'');}
     else if(x&&l.price!=null){const n=net(l.price),m=n>0?(n-x.cost)/n:0;
       flag=(x.cost>0&&n<x.cost)?`<span class="flag-bad">低於成本！毛利 ${(m*100).toFixed(1)}%</span>`
         :(x.floor>0&&n<x.floor)?`<span class="flag-warn">低於業務底價，毛利 ${(m*100).toFixed(1)}%</span>`
@@ -492,10 +497,10 @@ function card(l,i){
     extra=`<div class="price"><span class="lbl">數量</span><input type="number" min="0" value="${l.qty??''}" placeholder="客人沒寫就空著" onchange="LINES[${i}].qty=this.value===''?null:+this.value;draw()">
       <span class="lbl">單價（${taxIn()?'含稅':'未稅'}）</span><input type="number" min="0" value="${l.price??''}" onchange="LINES[${i}].price=this.value===''?null:+this.value;draw()"></div>
       <div style="margin-top:4px">${flag}</div>
-      ${x?`<div class="facts"><div><span>${SITE[l.sku]&&SITE[l.sku].price?'官網原價':'零售價（含稅）'}</span>${fmt(SITE[l.sku]&&SITE[l.sku].price?SITE[l.sku].price:x.retail)}</div><div><span>業務底價（未稅）</span>${fmt(x.floor)}</div><div><span>成本（未稅）</span>${fmt(x.cost)}</div><div><span>這位客人上次買</span>${d.sale?fmt(d.sale.price)+(d.sale.tax==='1'?' 含稅':' 未稅'):'—'}</div></div>
+      ${x?`<div class="facts"><div><span>${SITE[l.sku]&&SITE[l.sku].price?'官網原價':'零售價（含稅）'}</span>${fmt(SITE[l.sku]&&SITE[l.sku].price?SITE[l.sku].price:x.retail)}</div><div><span>業務底價（未稅）</span>${fmt(x.floor)}</div>${STAFF()?'':`<div><span>成本（未稅）</span>${fmt(x.cost)}</div>`}<div><span>這位客人上次買</span>${d.sale?fmt(d.sale.price)+(d.sale.tax==='1'?' 含稅':' 未稅'):'—'}</div></div>
       ${printBlock(l,i)}
-      <details><summary>各店庫存、其他價格</summary><div class="chips">${stock||'<i>全公司沒有庫存</i>'}</div>
-        <div class="facts"><div><span>標準售價（未稅）</span>${fmt(x.std)}</div><div><span>最近進價</span>${fmt(x.lastIn)}</div><div><span>牌價（未稅）</span>${fmt(x.list)}</div><div><span>這位客人上次報價</span>${d.quote?fmt(d.quote.price)+' ('+esc(d.quote.doc)+')':'—'}</div></div></details>`:''}`;
+      <details><summary>${STAFF()?"各店庫存":"各店庫存、其他價格"}</summary><div class="chips">${stock||'<i>全公司沒有庫存</i>'}</div>
+        ${STAFF()?'':`<div class="facts"><div><span>標準售價（未稅）</span>${fmt(x.std)}</div><div><span>最近進價</span>${fmt(x.lastIn)}</div><div><span>牌價（未稅）</span>${fmt(x.list)}</div><div><span>這位客人上次報價</span>${d.quote?fmt(d.quote.price)+' ('+esc(d.quote.doc)+')':'—'}</div></div>`}</details>`:''}`;
   }
   return `<div class="item"><div class="hd"><b>第 ${i+1} 項</b>${l.cseq?'<span>客人編號 '+esc(l.cseq)+'</span>':''}<span class="x"><button class="sm" onclick="if(confirm('刪掉第 ${i+1} 項？')){LINES.splice(${i},1);OPEN={};draw()}">刪掉這項</button></span></div>
     <div class="bd"><div>
@@ -607,7 +612,7 @@ function drawTot(){
   const nk=taxIn()?sumK/1.05:sumK, m=nk>0?(nk-cost)/nk:0;
   const ask=LINES.filter(l=>l.status==='ask').length, ven=LINES.filter(l=>l.status==='vendor').length, miss=LINES.filter(l=>l.status==='ok'&&!quotable(l)).length;
   $('tot').innerHTML=`<span>報價 <b>${n}</b> 項${ask?'、問客人 '+ask+' 項':''}${ven?'、確認有沒有貨 '+ven+' 項':''}${miss?`、<span class="flag-warn">${miss} 項還沒填好數量或單價</span>`:''}</span>`+
-    `<span>報價合計${taxIn()?'（含稅）':'（未稅）'} <b>${fmt(sum)}</b></span><span>毛利 <b>${fmt(nk-cost)}</b>（${(m*100).toFixed(1)}%）${sp?'，不含 ERP 沒有的商品':''}</span>`;
+    `<span>報價合計${taxIn()?'（含稅）':'（未稅）'} <b>${fmt(sum)}</b></span>`+(STAFF()?'':`<span>毛利 <b>${fmt(nk-cost)}</b>（${(m*100).toFixed(1)}%）${sp?'，不含 ERP 沒有的商品':''}</span>`);
 }
 
 // ---- LINE 訊息 ----
@@ -671,6 +676,11 @@ function preview(){
   window.open('/print?preview=1','_blank');
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+<script>
+// 從門市小鎮打開（?from=town）：左上「← 回門市小鎮」，換頁也保留（線23 11/09）
+(function(){try{var q=new URLSearchParams(location.search);if(q.get('from')==='town')sessionStorage.setItem('tj-from-town','1');
+if(sessionStorage.getItem('tj-from-town')==='1'){var a=document.getElementById('backTown');if(a){var th=q.get('theme')||'';a.href='http://127.0.0.1:8745/'+(th?'?theme='+encodeURIComponent(th):'');a.hidden=false;}}}catch(e){}})();
 </script>
 </body>
 </html>
