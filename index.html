@@ -60,6 +60,8 @@ header {
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .brand h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: 0.04em; }
 .brand .date { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.backtown { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent); background: var(--surface); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+.backtown[hidden] { display: none; }
 
 form.scan { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .fields { display: grid; gap: 8px; }
@@ -218,6 +220,19 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
 
 <div class="wrap">
   <header>
+    <a class="backtown" id="backTown" href="http://127.0.0.1:8745/" hidden>← 回門市小鎮</a>
+    <script>
+      // 從門市電腦的「門市小鎮」工具列打開（網址帶 from=town）才顯示，同一分頁回小鎮；手機直接開不顯示
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          if (q.get('from') !== 'town') return;
+          var a = document.getElementById('backTown');
+          a.href = 'http://127.0.0.1:8745/?theme=' + encodeURIComponent(q.get('theme') || '');
+          a.hidden = false;
+        } catch (e) {}
+      })();
+    </script>
     <div class="brand">
       <h1>天掌門市查價</h1>
       <span class="date" id="dataDate">價格資料載入中</span>
