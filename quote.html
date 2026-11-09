@@ -93,8 +93,10 @@ pre.msg{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);b
 .strip .t label input{width:auto}
 .tag{display:inline-block;border-radius:4px;padding:0 5px;font-size:11px;margin-right:3px}
 .tag.ok{background:var(--okbg);color:var(--ok)}.tag.bad{background:var(--badbg);color:var(--bad)}.tag.mid{background:var(--warnbg);color:var(--warn)}
+/* 找圖：AI 還沒看過的圖先模糊（11/09 老闆：搜出不相干、不雅的圖） */
+.imgs .c.wait img{filter:blur(14px)}
 </style>
-<style>#reprint,#custQ,#custSel,#custDrop{display:none!important}</style>
+<style>#reprint{display:none!important}</style>
 </head>
 <body>
 <header><a id="backTown" hidden href="http://127.0.0.1:8745/" style="margin-right:8px;font-weight:700;text-decoration:none;color:inherit">← 回門市小鎮</a><b>天掌報價</b><span class="muted" id="ver"></span>
@@ -119,12 +121,11 @@ pre.msg{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);b
   <div class="card">
     <h2>客人資料（選填）</h2>
     <div class="help">不用先填。AI 讀清單時，文字或圖片裡有客人名稱、聯絡人、電話會自動帶入；要印報價單再補就好。</div>
-    <div class="row"><input id="cname" placeholder="客戶名稱"></div>
+    <div class="row"><input id="cname" placeholder="客戶名稱（打字會同時找 ERP 客戶，例：宜得利）" autocomplete="off"></div>
+    <ul class="drop" id="custDrop" hidden></ul>
+    <div class="muted" id="custSel" style="margin-top:4px"></div>
     <div class="row" style="margin-top:6px"><input id="contact" placeholder="聯絡人"><input id="tel" placeholder="電話"></div>
-    <details style="margin-top:6px"><summary>更多：ERP 客戶、付款方式、備註、含稅／未稅</summary>
-      <input id="custQ" style="margin-top:6px" placeholder="ERP 有建檔的客戶：輸入名稱或電話搜尋（會帶出以前的成交價）" autocomplete="off">
-      <ul class="drop" id="custDrop" hidden></ul>
-      <div class="muted" id="custSel" style="margin-top:4px"></div>
+    <details style="margin-top:6px"><summary>更多：付款方式、備註、含稅／未稅</summary>
       <div class="row" style="margin-top:6px"><input id="pay" list="payList" placeholder="付款方式"><datalist id="payList"><option>匯款</option><option>現金</option><option>貨到付款</option><option>月結</option></datalist></div>
       <div class="row" style="margin-top:6px"><input id="remark" placeholder="報價單備註（例：到貨約 3 個工作天）"></div>
       <div class="row" style="margin-top:6px"><select id="taxType"><option value="1">報價金額是含稅的</option><option value="2">報價金額是未稅的（另加 5% 稅）</option></select></div>
@@ -277,21 +278,29 @@ function search(q, n) {
 // AI 讀清單用：關鍵字打分數（型號類的詞分數高），同電腦版 Find-Candidates
 const BRAND = { MILWAUKEE: '美沃奇', '美沃奇': 'MILWAUKEE', MAKITA: '牧田', '牧田': 'MAKITA', DEWALT: '得偉', '得偉': 'DEWALT', BOSCH: '博世', '博世': 'BOSCH', HIKOKI: '日立', '日立': 'HIKOKI', STANLEY: '史丹利', '史丹利': 'STANLEY', KINGTONY: '京達', '京達': 'KINGTONY', TAJIMA: '田島', '田島': 'TAJIMA', METABO: '美達寶', '美達寶': 'METABO' };
 function candidates(terms, models, n) {
-  const toks = new Map();
-  const add = (raw, w) => {
-    const u = NORM(raw);
-    if (u.length < 2 && !/\d/.test(u)) return;
-    if (/^\d+$/.test(u) && u.length < 2) return;
-    if (/[A-Z]/.test(u) && /\d/.test(u)) w = Math.max(w, 3);
-    if (!toks.has(u) || toks.get(u) < w) toks.set(u, w);
-    if (BRAND[u] && !toks.has(BRAND[u])) toks.set(BRAND[u], 1);
+  // 11/09 改「整組關鍵字」計分（同電腦版 Find-Candidates）：組內每個詞都對到才算這組分（1＋詞數；型號組 3＋詞數）；
+  // 單一詞對到 0.2、型號類的詞 2 分；中文長詞拆兩字一組各 0.3；總分 ≥1 才列。泛用詞（塑膠）單獨對到不會排前面
+  const tokIx = new Map(), groups = [];
+  const ti = u => { if (!tokIx.has(u)) tokIx.set(u, tokIx.size); return tokIx.get(u); };
+  const addGroup = (raw, base) => {
+    const ix = [...new Set(String(raw).replace(/[，,;；/：:、。（）()「」]/g, ' ').split(/\s+/).filter(Boolean).map(NORM).filter(u => u.length >= 2 || /\d/.test(u)).map(ti))];
+    if (ix.length && groups.length < 12) groups.push({ ix, base });
   };
-  for (const m of models || []) if (m) String(m).split(/\s+/).filter(Boolean).forEach(x => add(x, 3));
-  for (const t of terms || []) if (t) String(t).replace(/[，,;；/]/g, ' ').split(/\s+/).filter(Boolean).forEach(x => add(x, 1));
-  const keys = [...toks.keys()].slice(0, 14); if (!keys.length) return [];
-  const tot = keys.reduce((s, k) => s + toks.get(k), 0), min = tot < 3 ? 1 : 2;
+  for (const m of models || []) if (m) addGroup(m, 3);
+  for (const t of terms || []) if (t) addGroup(t, 1);
+  const toks = [...tokIx.keys()].slice(0, 24); if (!toks.length) return [];
+  const alt = toks.map(u => BRAND[u] ? [u, BRAND[u]] : [u]);
+  const tw = toks.map(u => (/[A-Z]/.test(u) && /\d/.test(u)) ? 2 : 0.2);
+  const bi = new Set(); for (const k of toks) if (/^[一-鿿]{4,}$/.test(k)) for (let j = 0; j < k.length - 1; j++) bi.add(k.slice(j, j + 2));
+  const bk = [...bi].slice(0, 24);
   const res = [];
-  for (const x of DB.items) { let sc = 0; for (const k of keys) if (x._n.includes(k)) sc += toks.get(k); if (sc >= min) res.push([sc, x]); }
+  for (const x of DB.items) {
+    const h = alt.map(a => a.some(u => x._n.includes(u)));
+    let sc = 0; h.forEach((v, i) => { if (v) sc += tw[i]; });
+    for (const g of groups) { const ix = g.ix.filter(i => i < toks.length); if (ix.length && ix.every(i => h[i])) sc += g.base + ix.length; }
+    for (const g of bk) if (x._n.includes(g)) sc += 0.3;
+    if (sc >= 1) res.push([sc, x]);
+  }
   res.sort((a, b) => (b[0] - a[0]) || ((b[1].stock > 0) - (a[1].stock > 0)) || a[1].name.localeCompare(b[1].name));
   return res.slice(0, n || 6).map(r => pub(r[1]));
 }
@@ -317,7 +326,8 @@ function shrink(b64, max) {
 const ROUTES = {
   '/api/me': async () => gs('me'),
   '/api/search': async q => { await DBP; return { ok: true, items: search(q.get('q'), 30).map(pub) }; },
-  '/api/customers': async () => ({ ok: true, items: [] }),
+  '/api/customers': async q => gs('customers', { q: q.get('q') }),
+  '/api/candidates': async q => { await DBP; return { ok: true, items: candidates(String(q.get('q') || '').split('|'), [q.get('m') || ''], 8) }; },
   '/api/detail': async (q, b) => {
     await DBP;
     const skus = (b.skus || []).filter(s => DB.by[s]);
@@ -330,7 +340,17 @@ const ROUTES = {
   '/api/parse': async (q, b) => {
     const p = await gs('parse', b); await DBP;
     const lines = p.lines || [];
-    const cands = lines.map(ln => candidates([...(ln.search || []), ln.name, ln.brand], [ln.model], 6));
+    const rawOf = ln => String(ln.raw || '').replace(/[:：]\s*[\d０-９].*$/, '').replace(/[\d０-９]+\s*(個|支|台|組|只|把|盒|包|條|片|顆|入|套|pcs|PCS)\s*$/, '').trim();
+    const termsOf = ln => [...(ln.search || []), ln.name, ln.brand, rawOf(ln), ...(ln.alias || [])];
+    const cands = lines.map(ln => candidates(termsOf(ln), [ln.model], 6));
+    // 找不到候選的，請 AI 再給 ERP 常用叫法重找一次（不靠運氣）
+    const miss = lines.map((ln, i) => i).filter(i => !cands[i].length);
+    if (miss.length) {
+      try {
+        const al = (await gs('alias', { text: miss.map(i => `第 ${i} 行：${lines[i].raw}（品名重點：${lines[i].name || ''}）`).join('\n') })).items || [];
+        for (const x of al) { const i = +x.i; if (lines[i] && !cands[i].length) { lines[i].alias = x.terms || []; cands[i] = candidates(termsOf(lines[i]), [lines[i].model], 6); } }
+      } catch (e) { console.warn('alias 失敗', e); }
+    }
     let picks = [];
     if (cands.some(c => c.length)) {
       const t = lines.map((ln, i) => `第 ${i} 行：客人寫「${ln.raw}」數量 ${ln.qty ?? ''} ${ln.unit || ''}\n` + (cands[i].length ? cands[i].map(f => `  - ${f.sku}｜${f.name}｜${f.spec}｜${f.unit}｜庫存 ${f.stock}`).join('\n') : '  （ERP 找不到候選）')).join('\n');
@@ -338,7 +358,7 @@ const ROUTES = {
     }
     return { ok: true, customer: p.customer, notes: p.notes, lines: lines.map((ln, i) => ({ line: ln, candidates: cands[i], pick: picks.find(x => +x.i === i) || null })) };
   },
-  '/api/images': async q => gs('images', { sku: q.get('sku'), q: q.get('q') }),
+  '/api/images': async q => gs('images', { sku: q.get('sku'), q: q.get('q'), web: q.get('web') !== '0' }),
   '/api/imagecheck': async (q, b) => gs('imagecheck', b),
   '/api/imagesave': async (q, b) => { if (b.data) b.data = await shrink(b.data, 1600); return gs('imagesave', b); },
   '/api/imageedit': async (q, b) => gs('imageedit', b),
@@ -396,15 +416,39 @@ function showPending(){const d=$('pendDrop');if(!d.hidden){d.hidden=true;return}
 loadPending();setInterval(loadPending,120000);
 
 // ---- 客戶 ----
-let ct; $('custQ').addEventListener('input',()=>{clearTimeout(ct);ct=setTimeout(async()=>{
-  const q=$('custQ').value.trim(); const d=$('custDrop'); if(!q){d.hidden=true;return}
+// 客戶名稱欄打字＝同時找 ERP 客戶（11/09 老闆：客人欄自己填也要能找）；改了名稱就不再用原本選的 ERP 客戶
+let ct; $('cname').addEventListener('input',()=>{clearTimeout(ct);
+  if(CUST.code!=='0001301'&&$('cname').value.trim()!==CUST.name){CUST={code:'0001301',name:'零散現金'};showCust();}
+  ct=setTimeout(async()=>{
+  const q=$('cname').value.trim(); const d=$('custDrop'); if(q.length<2){d.hidden=true;return}
   try{const j=await api('/api/customers?q='+encodeURIComponent(q));
-    d.innerHTML=j.items.map((c,i)=>`<li data-i="${i}">${esc(c.name||c.short)} <span class="muted">${esc(c.code)}　${esc(c.tel)}</span></li>`).join('')||'<li class="muted">ERP 沒有這個客戶（不用選，直接填下面的客戶名稱）</li>';
-    d.hidden=false; d.onclick=e=>{const li=e.target.closest('li[data-i]');if(!li)return;const c=j.items[li.dataset.i];CUST={code:c.code,name:c.name||c.short};
-      $('cname').value=CUST.name; if(!$('tel').value&&c.tel)$('tel').value=c.tel;
-      if(c.tax==='1'||c.tax==='2')$('taxType').value=c.tax; d.hidden=true;$('custQ').value='';showCust();refreshDetail();};
+    d.innerHTML=j.items.map(custLi).join('')||'<li class="muted">ERP 沒有這個客戶（不用選，名稱照打的印在報價單）</li>';
+    d.hidden=false; d.onclick=e=>{const li=e.target.closest('li[data-i]');if(!li)return;selectCust(j.items[li.dataset.i]);};
   }catch(e){d.innerHTML='<li class="err">'+esc(e.message)+'</li>';d.hidden=false}},300)});
-function showCust(){$('custSel').textContent=CUST.code==='0001301'?'沒有選 ERP 客戶（存進 ERP 時會用散客 0001301）':'ERP 客戶：'+CUST.name+'（'+CUST.code+'）　會帶出這位客人以前的成交價'}
+$('cname').addEventListener('blur',()=>setTimeout(()=>{$('custDrop').hidden=true},250));
+function custLi(c,i){return `<li data-i="${i}"><b>${esc(c.name||c.short)}</b> <span class="muted">${esc(c.code)}${c.contact?'　'+esc(c.contact):''}${c.tel?'　'+esc(c.tel):''}${c.vat?'　統編 '+esc(c.vat):''}</span></li>`}
+// 選定 ERP 客戶：帶出名稱、編號、聯絡人、電話、稅別（11/09 老闆：有 ERP 客戶要帶出實際名稱和編號以及資料）
+function selectCust(c,auto){CUST={code:c.code,name:c.name||c.short,short:c.short||'',contact:c.contact||'',tel:c.tel||'',tel2:c.tel2||'',vat:c.vat||'',addr:c.addr||''};
+  $('cname').value=CUST.name; if(c.contact)$('contact').value=c.contact; if(c.tel)$('tel').value=c.tel;
+  if(c.tax==='1'||c.tax==='2')$('taxType').value=c.tax; $('custDrop').hidden=true;CUST.auto=!!auto;showCust();save();refreshDetail();}
+function showCust(){const s=$('custSel');if(CUST.code==='0001301'){s.textContent='沒有選 ERP 客戶（存進 ERP 時會用散客 0001301）';return}
+  s.innerHTML=`<b>ERP 客戶：${esc(CUST.name)}（${esc(CUST.code)}）</b>${CUST.auto?' <span class="flag-ok">AI 讀到後自動對到，不對請在客戶名稱重新打字選</span>':''}<br>`+
+    [CUST.contact&&'聯絡人 '+CUST.contact,CUST.tel&&'電話 '+CUST.tel,CUST.tel2&&'電話二 '+CUST.tel2,CUST.vat&&'統編 '+CUST.vat,CUST.addr&&'地址 '+CUST.addr].filter(Boolean).map(esc).join('　')+
+    ` <button class="sm" onclick="CUST={code:'0001301',name:'零散現金'};showCust();save()">不用這個客戶</button>`}
+// AI 讀到客人名稱／電話 → 去 ERP 客戶找；只有一個或名稱完全吻合就自動選，多個列出來讓人點
+const CO_SUFFIX=/(股份有限公司|有限公司|企業社|工程行|實業|公司|商行|行|社)$/;
+async function autoCust(c){
+  if(CUST.code!=='0001301')return;
+  const tries=[];const nm=String(c.name||'').trim();
+  if(nm){tries.push(nm);const b=nm.replace(/[（(].*?[)）]/g,'').replace(CO_SUFFIX,'').trim();if(b&&b!==nm)tries.push(b);if(b.length>4)tries.push(b.slice(0,4));}
+  const tel=String(c.tel||'').replace(/[^\d]/g,'');if(tel.length>=8)tries.push(tel.slice(-8));
+  for(const q of tries){let j;try{j=await api('/api/customers?q='+encodeURIComponent(q))}catch(e){return}
+    const it=j.items||[];if(!it.length)continue;
+    const exact=it.find(x=>x.name===nm||x.short===nm)||(it.length===1?it[0]:null);
+    if(exact){selectCust(exact,true);return}
+    const d=$('custDrop');d.innerHTML='<li class="muted">AI 讀到客人「'+esc(nm||c.tel)+'」，ERP 有這幾個相近的客戶，請點選（都不是就不用選）</li>'+it.map(custLi).join('');
+    d.hidden=false;d.onclick=e=>{const li=e.target.closest('li[data-i]');if(!li)return;selectCust(it[li.dataset.i]);};return}
+}
 
 // ---- 圖片 ----
 $('file').addEventListener('change',e=>{[...e.target.files].forEach(addImg);e.target.value=''});
@@ -420,13 +464,17 @@ $('btnParse').onclick=async()=>{
   $('parseMsg').innerHTML='<span class="spin"></span> AI 讀取中，清單長的話要 20～60 秒…';
   try{
     const j=await api('/api/parse',{text:$('txt').value,images:IMGS.map(u=>({media:'image/jpeg',data:u.split(',')[1]}))});
+    // 已經有項目又按一次：問要不要換掉（11/09 老闆：按兩次變重複）
+    if(LINES.length&&confirm('上面已經有 '+LINES.length+' 項。\n按「確定」＝清掉原本的，換成這次讀到的\n按「取消」＝接在後面'))
+      {LINES=[];OPEN={}}
     const c=j.customer||{};
     if(c.contact&&!$('contact').value)$('contact').value=c.contact;
     if(c.tel&&!$('tel').value)$('tel').value=c.tel;
     if(c.name&&!$('cname').value&&CUST.code==='0001301')$('cname').value=c.name;
+    autoCust(c);
     for(const x of j.lines){
       const ln=x.line||{}, pk=x.pick||{};
-      LINES.push({cseq:ln.cseq||'',raw:ln.raw||'',qty:ln.qty,cands:(x.candidates||[]).slice(0,6),sku:pk.sku||'',
+      LINES.push({cseq:ln.cseq||'',raw:ln.raw||'',q:[ln.brand,ln.model,ln.name].filter(Boolean).join(' ')||ln.raw||'',qty:ln.qty,cands:(x.candidates||[]).slice(0,6),sku:pk.sku||'',
         status:pk.status||'vendor',question:pk.question||'',reason:pk.reason||'',price:null});
     }
     $('parseMsg').textContent='讀到 '+j.lines.length+' 項（'+Math.round((Date.now()-t0)/1000)+' 秒），請往下逐項確認';
@@ -478,6 +526,7 @@ function card(l,i){
   else ours=`<div class="none">還沒找到對應的商品</div>`;
   const alts=(l.cands||[]).filter(c=>c.sku);
   const altBox=OPEN[i]?`<div class="alts">${alts.map(c=>{const cd=DETAIL[c.sku]?DETAIL[c.sku].item:c;return `<label><input type="radio" name="alt${i}" ${c.sku===l.sku?'checked':''} onchange="pick(${i},'${esc(c.sku)}')"><div>${esc(cd.name)}<small>${esc(cd.spec)}${cd.spec?'　':''}零售價 ${fmt(cd.retail)}　庫存 ${fmt(cd.stock)}　品號 ${esc(cd.sku)}</small></div></label>`}).join('')}
+      ${alts.length?'':'<div class="muted" style="padding:6px 2px">AI 沒找到候選：請在上面「自己打字找 ERP 商品」那格輸入，例如品牌、型號或 ERP 的叫法</div>'}
       <label><input type="radio" name="alt${i}" ${l.special?'checked':''} onchange="toSpecial(${i})"><div>都不是：ERP 沒有這個商品，我自己填品名報價<small>報價單會用特殊品</small></div></label></div>`:'';
   const altBtn=`<button class="sm" onclick="OPEN[${i}]=!OPEN[${i}];draw()">${OPEN[i]?'收起':'換一個'}${alts.length?'（'+alts.length+' 個候選）':''}</button>`;
   // 處理方式
@@ -505,6 +554,8 @@ function card(l,i){
   return `<div class="item"><div class="hd"><b>第 ${i+1} 項</b>${l.cseq?'<span>客人編號 '+esc(l.cseq)+'</span>':''}<span class="x"><button class="sm" onclick="if(confirm('刪掉第 ${i+1} 項？')){LINES.splice(${i},1);OPEN={};draw()}">刪掉這項</button></span></div>
     <div class="bd"><div>
       ${l.raw?`<div class="lbl">客人要的</div><div class="want">${esc(l.raw)}</div>`:''}
+      <div class="row" style="margin-top:6px"><input id="rq${i}" value="${esc(l.q??l.raw??'')}" placeholder="自己打字找 ERP 商品（品名、型號、品號），例：交通錐" autocomplete="off" oninput="liveSearch(${i})" onblur="setTimeout(()=>{const d=$('rqd${i}');if(d)d.hidden=true},250)" onkeydown="if(event.key==='Enter')reSearch(${i})"><button class="sm" style="flex:0 0 auto" onclick="reSearch(${i})">重新查詢</button></div>
+      <ul class="drop" id="rqd${i}" hidden></ul>
       <div class="lbl" style="margin-top:8px">我們的商品</div>${ours}<div style="margin-top:6px">${altBtn}</div>${altBox}
       ${x?picBlock(l,i,x):''}
     </div><div>
@@ -519,7 +570,7 @@ function picBlock(l,i,x){
   const P=PICS[x.sku]||{}, imgs=x.imgs||[], sel=selOf(l,x);
   let box='';
   const sec=P.t0?Math.round((Date.now()-P.t0)/1000):0;
-  if(P.stage==='search') box=`<div class="busy"><span class="spin"></span> 正在到官網、PChome、momo、Yahoo、酷澎找圖… 已 <b data-tick="${esc(x.sku)}">${sec}</b> 秒（通常 5～10 秒）</div>`;
+  if(P.stage==='search') box=`<div class="busy"><span class="spin"></span> 正在用網路搜尋找這個商品的商品頁（官網、原廠、各購物網站）再抓圖… 已 <b data-tick="${esc(x.sku)}">${sec}</b> 秒（通常 15～30 秒）</div>`;
   else if(P.items){
     const checking=P.stage==='check';
     const one=(c,k)=>{const wm=c.watermark===true, can=c.checked&&!wm&&!c.added&&!c.saving;
@@ -530,7 +581,8 @@ function picBlock(l,i,x){
     box=`<div class="help" style="margin-top:8px">${checking?`<span class="spin"></span> 先列出找到的 ${P.items.length} 張；AI 正在檢查浮水印和用途… 已 <b data-tick="${esc(x.sku)}">${sec}</b> 秒（通常 10～20 秒），檢查完才能點選。`
         :P.items.some(c=>c.checked&&c.watermark!==true)?'點一張就加進這個商品的圖片（可以加好幾張，最多 6 張）。有別家浮水印的只給你參考，不能選。'
         :'<b class="flag-warn">找不到沒有別家浮水印的圖</b>。下面的只給你參考，可以自己拍照或另外找圖後按「自己放圖片」。'}${P.checkErr?'<br><span class="flag-bad">'+esc(P.checkErr)+'</span>':''}</div>
-      <div class="imgs">${P.items.map(one).join('')||'<div class="muted">各網站都沒找到圖</div>'}</div>
+      <div class="imgs">${P.items.map(one).join('')||'<div class="muted">'+(P.hidden?'找到的圖 AI 都判斷不是這個商品':'各網站都沒找到圖')+'，可以自己拍照後按「自己放圖片」</div>'}</div>
+      ${P.hidden&&P.items.length?'<div class="muted" style="margin-top:4px">另有 '+P.hidden+' 張 AI 判斷不是這個商品，已隱藏</div>':''}
       ${P.errors&&P.errors.length?'<div class="muted" style="margin-top:4px">有些網站沒找成：'+esc(P.errors.join('；'))+'</div>':''}
       ${checking?'':`<div style="margin-top:6px"><button class="sm" onclick="delete PICS['${esc(x.sku)}'];draw()">收起</button></div>`}`;
   }
@@ -555,7 +607,13 @@ async function findImg(sku){
   if(PICS[sku]&&PICS[sku].stage)return;                       // 正在找，不重複送
   const x=DETAIL[sku].item; PICS[sku]={stage:'search',t0:Date.now()}; draw(); startTick();
   const q=(x.name+' '+(x.spec||'')).replace(/[#＃]/g,' ').replace(/\s+/g,' ').trim();
-  try{const j=await api('/api/images?sku='+encodeURIComponent(sku)+'&q='+encodeURIComponent(q));
+  // 另外用短的名稱再找一次（去掉規格、括號、「有貼紙」這類尾巴），兩組結果合併（11/09：整串品名丟 PChome 只會回不相干的）
+  const q2=x.name.replace(/[#＃]/g,' ').replace(/[（(].*?[)）]/g,' ').replace(/\s+(有|無|含|附|不含).*$/,'').replace(/[_].*$/,'').trim();
+  const tk=q2.split(/\s+/),md=tk.find(t=>/[A-Za-z]/.test(t)&&/\d/.test(t)),q2s=md?(tk[0]!==md?tk[0]+' '+md:md):tk[0];
+  try{const rs=await Promise.all([api('/api/images?sku='+encodeURIComponent(sku)+'&q='+encodeURIComponent(q)),q2s&&q2s!==q?api('/api/images?web=0&sku='+encodeURIComponent(sku)+'&q='+encodeURIComponent(q2s)).catch(()=>({items:[],errors:[]})):Promise.resolve({items:[],errors:[]})]);
+    const seen=new Set(),j={items:[],errors:[...new Set(rs.flatMap(r=>r.errors||[]))]};
+    for(const r of rs)for(const it of r.items||[])if(!seen.has(it.url)){seen.add(it.url);j.items.push(it)}
+    j.items=j.items.slice(0,16);
     PICS[sku]={stage:j.items.length?'check':'',t0:Date.now(),items:j.items,errors:j.errors};draw();
     if(!j.items.length)return;
     try{const c=await api('/api/imagecheck',{sku,q,items:j.items.map(it=>({url:it.url}))});
@@ -563,6 +621,8 @@ async function findImg(sku){
       // 沒浮水印、對得上的排前面
       const rank=c=>(c.watermark===false?0:c.watermark==null?1:2)*3+({yes:0,maybe:1}[c.match]??2);
       PICS[sku].items.sort((a,b)=>rank(a)-rank(b));
+      // AI 判斷「不是這個商品」的直接不顯示，只留數量
+      const no=PICS[sku].items.filter(c=>c.match==='no');PICS[sku].hidden=no.length;PICS[sku].items=PICS[sku].items.filter(c=>c.match!=='no');
     }catch(e){PICS[sku].checkErr=e.message+'（沒檢查過的圖不能選，可以再按一次找圖片）'}
     PICS[sku].stage='';
   }catch(e){PICS[sku]={items:[],errors:[e.message]}}
@@ -605,6 +665,25 @@ function pick(i,sku){const l=LINES[i];l.sku=sku;l.special=false;l.price=null;l.i
 function toSpecial(i){const l=LINES[i];l.special=true;l.sku=SPECIAL;l.name=l.name||l.raw||'';l.status='ok';l.price=null;OPEN[i]=false;draw()}
 function sortLines(){if(LINES.some(l=>l.cseq))LINES.sort((a,b)=>seqKey(a.cseq)-seqKey(b.cseq))}
 function seqKey(s){if(!s)return 1e9;const m=String(s).match(/\d+(\.\d+)?/);return m?parseFloat(m[0]):1e9}
+// 改「找商品用的字」重新查（11/09 老闆：不能自己改名稱重新查詢）；比對＋關鍵字搜尋合併，有找到就先選第一個並打開候選
+// 每一項自己打字即時找（同老闆舊的智慧報價：空白分開的詞都要對到），點一個就換成這個商品（11/09）
+let lsT={};
+function liveSearch(i){clearTimeout(lsT[i]);lsT[i]=setTimeout(async()=>{
+  const q=($('rq'+i).value||'').trim(),d=$('rqd'+i);if(!d)return;if(q.length<2){d.hidden=true;return}
+  try{const j=await api('/api/search?q='+encodeURIComponent(q)),it=(j.items||[]).slice(0,30);
+    d.innerHTML=it.map((x,k)=>`<li data-k="${k}"><b>${esc(x.name)}</b> <span class="muted">${esc(x.spec)}</span><br><span class="muted">零售價 ${fmt(x.retail)}　全公司庫存 ${fmt(x.stock)}　品號 ${esc(x.sku)}</span></li>`).join('')||'<li class="muted">ERP 找不到「'+esc(q)+'」，換個字試試，或按「重新查詢」用模糊比對</li>';
+    d.hidden=false;d.onmousedown=async e=>{const li=e.target.closest('li[data-k]');if(!li)return;e.preventDefault();const x=it[li.dataset.k],l=LINES[i];
+      l.q=q;l.cands=[x,...(l.cands||[]).filter(c=>c.sku&&c.sku!==x.sku)].slice(0,10);l.sku=x.sku;l.special=false;if(l.status!=='ask')l.status='ok';d.hidden=true;await refreshDetail();};
+  }catch(e){d.innerHTML='<li class="err">'+esc(e.message)+'</li>';d.hidden=false}},300)}
+async function reSearch(i){const l=LINES[i],q=($('rq'+i).value||'').trim();if(!q)return;l.q=q;
+  const b=$('rq'+i).nextElementSibling;b.disabled=true;b.textContent='查詢中…';
+  try{const [a,c]=await Promise.all([api('/api/candidates?q='+encodeURIComponent(q)),api('/api/search?q='+encodeURIComponent(q))]);
+    const seen=new Set(),list=[];for(const x of [...(c.items||[]),...(a.items||[])])if(x.sku&&!seen.has(x.sku)){seen.add(x.sku);list.push(x)}
+    l.cands=list.slice(0,10);
+    if(!list.length){b.disabled=false;b.textContent='重新查詢';alert('「'+q+'」在 ERP 還是找不到，換個說法試試（例如品牌、型號或 ERP 常用的叫法）');save();return}
+    if(!l.sku||l.special||!seen.has(l.sku)){l.sku=list[0].sku;l.special=false;if(l.status!=='ask')l.status='ok'}
+    OPEN[i]=true;await refreshDetail();
+  }catch(e){alert(e.message);b.disabled=false;b.textContent='重新查詢'}}
 function quotable(l){return l.status==='ok'&&l.price!=null&&l.qty&&(l.special?(l.name||'').trim():DETAIL[l.sku])}
 function drawTot(){
   let sum=0,sumK=0,cost=0,n=0,sp=0;
