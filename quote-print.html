@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>報價單</title>
+<!-- 兩種版面：
+     圖文版（預設 10 項以內）：一項一列，大圖＋品名＋介紹重點＋官網 QR＋數量單價金額
+     清單版（預設 11 項以上）：前面是原本的報價單表格，後面附「商品圖片與介紹」圖錄頁，用序號對應
+     表頭、客戶卡、合計、簽章照 NAS 報價單產生器\quote_tpl_seq.py -->
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Noto Sans CJK TC","Microsoft JhengHei","PingFang TC",sans-serif;color:#1f2933;font-size:9.4pt;background:#e9ecef}
+.bar{position:sticky;top:0;z-index:3;background:#1f2933;color:#fff;padding:8px 16px;display:flex;gap:10px;align-items:center;font-size:14px;flex-wrap:wrap}
+.bar button,.bar select{font:inherit;border:0;border-radius:6px;padding:6px 14px;cursor:pointer;background:#b4232a;color:#fff}
+.bar select{background:#fff;color:#1f2933}
+.bar button.erp{background:#1d5f8a}
+.bar span{opacity:.85;font-size:13px}
+#root{padding:12px 0}
+.page{width:210mm;height:297mm;padding:14mm 13mm 13mm;display:flex;flex-direction:column;overflow:hidden;position:relative;background:#fff;margin:0 auto 12px;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+@media print{body{background:#fff}.bar{display:none}#root{padding:0}.page{margin:0;box-shadow:none;break-after:page}.page:last-child{break-after:auto}}
+.body{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.end{margin-top:auto;padding-top:4mm}
+.pf{position:absolute;left:13mm;right:13mm;bottom:6mm;font-size:7pt;color:#9aa5b1;display:flex;justify-content:space-between}
+.cont{font-size:8pt;color:#7b8794;margin-top:2.5mm;text-align:right}
+.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #1f2933;padding-bottom:3.5mm}
+.co h1{font-size:16pt;font-weight:700;letter-spacing:.5px}
+.co p{font-size:8pt;color:#52606d;margin-top:1mm;line-height:1.55}
+.ttl{text-align:right}.ttl h2{font-size:20pt;letter-spacing:7px;color:#b4232a;line-height:1}
+.ttl .en{font-size:7pt;letter-spacing:3.5px;color:#7b8794;margin-top:1mm}
+.info{display:grid;grid-template-columns:1.7fr 1fr;gap:4mm;margin-top:4mm}
+.card{border:1px solid #d9dee3;border-radius:1.5mm;padding:2.6mm 3.5mm;display:grid;grid-template-columns:17mm 1fr;row-gap:1.3mm;font-size:9pt}
+.card.cu{border-left:3.5px solid #b4232a}
+.k{color:#7b8794;font-size:8pt;padding-top:.3mm}
+.big{font-weight:700;font-size:11pt}
+.b{font-weight:600}
+/* 清單版表格 */
+table.it{width:100%;border-collapse:collapse;margin-top:4.5mm}
+table.it th{background:#1f2933;color:#fff;font-weight:500;font-size:8.3pt;padding:1.8mm 1.6mm;letter-spacing:.5px;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+table.it td{padding:1.6mm 1.6mm;border-bottom:1px solid #e4e7eb;vertical-align:top;line-height:1.4}
+table.it tr.g1 td{border-top:1px solid #b8c0c8}
+.rm{font-size:8pt;color:#b4232a}
+.r{text-align:right!important}.c{text-align:center!important}
+.n{color:#7b8794}
+.pid{font-size:7.6pt;color:#52606d;letter-spacing:.2px;white-space:nowrap}
+/* 圖文版：照紙本大小設計——主圖 60mm、其他圖半頁寬（約 89mm），字多的圖也看得清楚 */
+.hd2{display:grid;grid-template-columns:60mm 1fr 34mm;gap:4mm;margin-top:4.5mm;background:#1f2933;color:#fff;font-size:8.3pt;padding:1.8mm 2mm;letter-spacing:.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.list{display:flex;flex-direction:column}
+.ci{display:grid;grid-template-columns:60mm 1fr 34mm;gap:4mm;padding:3.5mm 2mm 3mm;border-top:1px solid #c5ccd3}
+.ci .im{width:60mm;height:60mm;border:1px solid #eef0f2;border-radius:1.5mm;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff}
+.ci .im img{max-width:100%;max-height:100%;object-fit:contain}
+.ci .im.no{color:#c5ccd3;font-size:8pt}
+.ci .no{font-weight:700;color:#b4232a;margin-right:1.5mm}
+.ci .nm{font-size:11pt;font-weight:700;line-height:1.4}
+.ci .sk{font-size:7.6pt;color:#7b8794;margin-top:.6mm}
+.ci ul{margin-top:1.8mm;padding-left:4mm;font-size:8.8pt;line-height:1.65;color:#323f4b}
+.lk{display:flex;gap:2.5mm;align-items:center;margin-top:2mm;font-size:7.6pt;color:#52606d;text-decoration:none}
+.lk svg{width:18mm;height:18mm;flex:none}
+.ci .pr{text-align:right;font-size:8.6pt;color:#52606d;line-height:1.7}
+.ci .pr b{display:block;font-size:14pt;color:#b4232a;margin-top:1mm}
+.ci .cs{font-size:8pt;color:#b4232a;margin-top:1mm}
+.exr{display:grid;grid-template-columns:repeat(6,1fr);gap:4mm;padding:0 2mm 3.5mm;align-items:start}
+.exr figure{border:1px solid #eef0f2;border-radius:1.5mm;background:#fff;padding:1.5mm;position:relative}
+.exr figure.S{grid-column:span 2}.exr figure.M{grid-column:span 3}.exr figure.L{grid-column:span 6}
+.exr .ph{display:flex;align-items:center;justify-content:center;overflow:hidden}
+.exr .S .ph{height:50mm}.exr .M .ph{height:72mm}.exr .L .ph{height:150mm}
+/* 浮動排版：放不下時先壓矮一點再試（字還看得清楚的最小高度） */
+.exr img{max-width:100%;max-height:100%;object-fit:contain}
+/* 編排模式（只在螢幕上，列印不會出現） */
+.ed{display:none}
+body.edit .ed{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:12px;background:#fff7e6;border:1px dashed #e0a100;border-radius:4px;padding:3px 6px;margin:2mm 2mm 0}
+body.edit .ed select,body.edit .ed button{font-size:12px;padding:1px 6px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer}
+body.edit figure,body.edit .ci .im,body.edit .gi .im{cursor:grab;outline:2px dashed #e0a100;outline-offset:1px}
+body.edit .drop-on{outline:3px solid #1d5f8a!important}
+body.edit .fx{display:flex;gap:3px;position:absolute;top:2mm;right:2mm;background:rgba(255,255,255,.92);border-radius:4px;padding:2px}
+.fx{display:none}
+@media print{.ed,.fx{display:none!important}body.edit figure,body.edit .ci .im{outline:none}}
+.exr figcaption{font-size:7.6pt;color:#7b8794;margin-top:1mm}
+.exr figcaption b{color:#b4232a;margin-right:1mm}
+/* 清單版後面的圖錄：一個商品一列，主圖 70mm＋介紹，其他圖半頁寬 */
+.cat-t{margin-top:4.5mm;font-size:11pt;font-weight:700;border-left:3.5px solid #b4232a;padding-left:2.5mm}
+.cat{display:flex;flex-direction:column;margin-top:2mm}
+.gi{display:grid;grid-template-columns:70mm 1fr;gap:5mm;padding:3.5mm 2mm 3mm;border-top:1px solid #c5ccd3}
+.gi .im{width:70mm;height:70mm;border:1px solid #eef0f2;border-radius:1.5mm;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff}
+.gi .im img{max-width:100%;max-height:100%;object-fit:contain}
+.gi .nm{font-size:11pt;font-weight:700;line-height:1.4}
+.gi .nm .no{color:#b4232a;margin-right:1.5mm}
+.gi .sk{font-size:7.6pt;color:#7b8794;margin-top:.6mm}
+.gi ul{padding-left:4mm;font-size:8.8pt;line-height:1.65;color:#323f4b;margin-top:1.8mm}
+/* 合計、簽章 */
+.sum{display:flex;justify-content:space-between;gap:6mm;align-items:flex-start}
+.notes{flex:1}
+h3{font-size:8.6pt;letter-spacing:2px;color:#b4232a;margin-bottom:1.3mm}
+.notes ol{padding-left:4.5mm;font-size:8.8pt;line-height:1.75;color:#323f4b}
+.tot{width:70mm;border-collapse:collapse}
+.tot td{padding:1.3mm 2mm;font-size:9pt}
+.tot tr.g td{border-top:2px solid #1f2933;padding-top:2.2mm;font-size:14pt;font-weight:700;color:#b4232a}
+.tot tr.g td:first-child{font-size:9.4pt;color:#1f2933;vertical-align:middle}
+.sign{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:4mm;margin-top:5mm}
+.terms{font-size:8pt;color:#52606d;line-height:1.7;border-top:1px solid #d9dee3;padding-top:2.5mm}
+.box{border:1px solid #c5ccd3;border-radius:1.5mm;height:32mm;position:relative;padding:2mm 2.5mm;font-size:7.8pt;color:#7b8794}
+.box img{position:absolute;right:2.5mm;bottom:2mm;height:24mm}
+.ln{position:absolute;left:2.5mm;right:2.5mm;bottom:4.5mm;border-top:1px dashed #c5ccd3;font-size:7pt;color:#9aa5b1;padding-top:.8mm}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<div class="bar"><button onclick="doPrint()">列印／另存 PDF</button>
+  <select id="mode" title="版面"><option value="card">圖文版（一項一列，大圖＋介紹）</option><option value="list">清單版（表格＋後面附商品圖錄）</option></select>
+  <button id="btnEdit" style="background:#e0a100" onclick="toggleEdit()">編排圖片</button>
+  <button id="btnErp" class="erp" hidden onclick="saveErp()">存進 ERP 報價單</button><span id="hint"></span></div>
+<div id="root"></div>
+<script>
+const MAIN = "let Q=/*DATA*/null;\nconst PREVIEW=!Q;\nif(PREVIEW){try{Q=window.__PV||JSON.parse(localStorage.getItem('tanjun-quote-preview')||'null')}catch(e){}\n  if(!Q){document.body.innerHTML='<p style=\"padding:30px\">找不到預覽資料，請回報價畫面再按一次「預覽報價單」。<\/p>';throw new Error('no preview')}}\nconst e=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));\nconst f=v=>Math.round(v||0).toLocaleString('en-US');\nconst H=Q.header, L=Q.lines;\nconst dd=H.docdate, roc=`${+dd.slice(0,4)-1911}/${dd.slice(4,6)}/${dd.slice(6)}`;\nconst lab=H.taxType==='1'?'含稅':'未稅';\ndocument.title=PREVIEW?'報價單預覽 '+(H.cname||''):'報價單 '+H.doc+' '+H.cname;\ndocument.getElementById('hint').textContent=PREVIEW?'預覽，還沒存進 ERP：可以直接列印或存 PDF 給客人；客人要訂了再按「存進 ERP 報價單」。':(H.doc+'　'+H.cname+'　已在 ERP（'+(H.confirmed==='Y'?'已確認':'未確認')+'）');\nif(PREVIEW)document.getElementById('btnErp').hidden=false;\nconst sel=document.getElementById('mode');\nsel.value=Q.mode||(L.filter(l=>l.qty||l.price).length<=10?'card':'list');\nsel.onchange=()=>{Q.mode=sel.value;if(PREVIEW){try{localStorage.setItem('tanjun-quote-preview',JSON.stringify(Q))}catch(x){}}build()};\n\nasync function saveErp(){\n  const E=Q.erp; const list=E.lines.map((l,i)=>`${i+1}. ${L[i].nm}　${l.qty} × ${f(l.price)} = ${f(l.amt)}`).join('\\n');\n  if(!confirm(`確定要存進 ERP 報價單嗎？\\n\\n客戶：${E.cname}（${E.cust}）\\n${list}\\n\\n含稅總計 ${f(H.amount+H.tax)}\\n\\n`+(window.__PHONE?'手機不能直接寫 ERP：會先放進「待存 ERP」清單，回到電腦打開報價程式確認後才寫進 ERP。':'存進去會產生正式報價單號（ERP 未確認狀態）。')))return;\n  const b=document.getElementById('btnErp');b.disabled=true;b.textContent='存進 ERP 中…';\n  try{const r=await fetch('/api/quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...E,testRollback:false})});\n    const j=await r.json(); if(!j.ok)throw new Error(j.error);\n    if(j.result&&j.result.queued){alert('已放進「待存 ERP」清單（'+j.result.id+'）。回到電腦打開報價程式，確認後才會寫進 ERP。');b.textContent='已放進待存清單';return}\n    if(!j.result.committed)throw new Error('沒有存進去');\n    try{localStorage.removeItem('tanjun-quote-preview')}catch(x){}\n    if(window.__PENDING){try{await fetch('/api/pendingdone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:window.__PENDING,doc:j.result.doc})})}catch(x){}}\n    alert('已存進 ERP：'+j.result.doc);\n    location.href='/print?doc='+encodeURIComponent(j.result.doc)+'&remark='+encodeURIComponent(Q.remark||'')+'&mode='+sel.value;\n  }catch(x){alert('存進 ERP 失敗：'+x.message);b.disabled=false;b.textContent='存進 ERP 報價單'}\n}\n\n// ---- 共用片段 ----\nconst items=L.filter(l=>l.qty||l.price);\nconst noteOf=l=>{const m=String(l.note||'').match(/^\\s*(\\d+)\\s*(.*)$/);return m?(m[1]+(m[2]?' '+m[2]:'')):(l.note||'')};\nconst pts=l=>(l.intro||'').split(/\\n/).map(s=>s.replace(/^\\s*[\\d０-９]+[\\.、．)]\\s*/,'').trim()).filter(Boolean);\nconst shortUrl=u=>String(u||'').replace(/^https?:\\/\\/(www\\.)?/,'');\nfunction qr(u){try{const q=qrcode(0,'M');q.addData(u);q.make();return q.createSvgTag({cellSize:2,margin:0,scalable:true})}catch(x){return ''}}\nconst ims=l=>Array.isArray(l.imgs)?l.imgs:(l.img?[0]:[]);\nconst src=(l,n)=>(l.ids&&l.ids[n])?'https://lh3.googleusercontent.com/d/'+l.ids[n]+'=w1600':'/img?sku='+encodeURIComponent(l.sku)+'&n='+n;\nconst img=l=>{const a=ims(l);return a.length?`<img src=\"${src(l,a[0])}\">`:''};\nconst ROLE=l=>(l.roles||{});\n// ---- 其他圖的大小：小（三張一排，50mm 高）、中（兩張一排，72mm）、大（整頁寬，150mm）----\n// 預設：字多的圖（盒裝內容、尺寸規格）用大，照片用中。編排模式可以改大小、拖曳排序、套用排法\nconst UNITS={S:2,M:3,L:6}, SZN={S:'小',M:'中',L:'大'};\nconst PRESETS={std:'標準（字多的圖大、照片中）',M:'全部中（兩張一排）',S:'全部小（三張一排）',L:'全部大（一張一排）'};\nconst defSize=r=>['盒裝內容','尺寸規格'].includes(r)?'L':'M';\nfunction sizeOf(l,n){const z=(l.sizes||{})[n];return z||defSize(ROLE(l)[n])}\nfunction fig(l,n){const z=sizeOf(l,n),i=L.indexOf(l);\n  return `<figure class=\"${z}\" draggable=\"true\" data-i=\"${i}\" data-n=\"${n}\"><div class=\"fx\"><select onchange=\"setSize(${i},${n},this.value)\">${Object.keys(SZN).map(k=>`<option value=\"${k}\"${k===z?' selected':''}>${SZN[k]}<\/option>`).join('')}<\/select><button onclick=\"dropPic(${i},${n})\" title=\"這張報價單不放這張\">✕<\/button><\/div>\n    <div class=\"ph\"><img src=\"${src(l,n)}\"><\/div><figcaption><b>${+l.seq}<\/b>${e(ROLE(l)[n]||'')}　${e(l.nm)}<\/figcaption><\/figure>`}\nfunction extraRows(l){const a=ims(l).slice(1),out=[],i=L.indexOf(l);let row=[],used=0;\n  const flush=()=>{if(row.length){out.push({h:'<div class=\"exr\">'+row.map(n=>fig(l,n)).join('')+'<\/div>',it:i,main:false});row=[];used=0}};\n  for(const n of a){const u=UNITS[sizeOf(l,n)];if(used+u>6)flush();row.push(n);used+=u;if(used>=6)flush()}\n  flush();\n  if(out.length) out[0].h='<div>'+`<div class=\"ed\">第 ${+l.seq} 項的圖片排法：<select onchange=\"preset(${i},this.value)\"><option value=\"\">選擇…<\/option>${Object.keys(PRESETS).map(k=>`<option value=\"${k}\">${PRESETS[k]}<\/option>`).join('')}<\/select>　拖曳圖片可以換順序，拖到左邊大圖上就變成主圖；右上角可以改大小或拿掉<\/div>`+out[0].h+'<\/div>';\n  return out}\nfunction persist(){if(PREVIEW){try{localStorage.setItem('tanjun-quote-preview',JSON.stringify(Q))}catch(x){}}const y=scrollY;build();scrollTo(0,y)}\nfunction setSize(i,n,z){const l=L[i];l.sizes=Object.assign({},l.sizes||{},{[n]:z});persist()}\nfunction preset(i,k){if(!k)return;const l=L[i];l.sizes={};if(k!=='std')for(const n of ims(l).slice(1))l.sizes[n]=k;persist()}\nfunction dropPic(i,n){const l=L[i];l.imgs=ims(l).filter(v=>v!==n);persist()}\nfunction movePic(i,from,to){const l=L[i],a=ims(l).slice(),fi=a.indexOf(from),ti=a.indexOf(to);if(fi<0||ti<0||fi===ti)return;\n  a.splice(fi,1);let t=a.indexOf(to);if(ti===0)t=0;else if(fi<ti)t++;a.splice(t,0,from);l.imgs=a;persist()}\nfunction toggleEdit(){document.body.classList.toggle('edit');document.getElementById('btnEdit').textContent=document.body.classList.contains('edit')?'編排完成':'編排圖片';persist()}\nfunction doPrint(){if(document.body.classList.contains('edit'))toggleEdit();setTimeout(()=>print(),300)}\nlet DRAG=null;\ndocument.addEventListener('dragstart',ev=>{const f=ev.target.closest&&ev.target.closest('[data-n]');if(!f||!document.body.classList.contains('edit'))return;DRAG={i:+f.dataset.i,n:+f.dataset.n};ev.dataTransfer.effectAllowed='move'});\ndocument.addEventListener('dragover',ev=>{const t=ev.target.closest&&ev.target.closest('[data-n]');if(!DRAG||!t||+t.dataset.i!==DRAG.i)return;ev.preventDefault();document.querySelectorAll('.drop-on').forEach(x=>x.classList.remove('drop-on'));t.classList.add('drop-on')});\ndocument.addEventListener('drop',ev=>{const t=ev.target.closest&&ev.target.closest('[data-n]');if(!DRAG||!t)return;ev.preventDefault();const d=DRAG;DRAG=null;if(+t.dataset.i===d.i)movePic(d.i,d.n,+t.dataset.n)});\ndocument.addEventListener('dragend',()=>{DRAG=null;document.querySelectorAll('.drop-on').forEach(x=>x.classList.remove('drop-on'))});\nconst HEAD='<div class=\"top\"><div class=\"co\"><h1>天掌五金企業股份有限公司<\/h1><p>統一編號 53264563　｜　彰化縣田中鎮中南路三段467號　｜　電話 04-8742490　｜　傳真 04-8751490<\/p><\/div><div class=\"ttl\"><h2>報價單<\/h2><div class=\"en\">QUOTATION<\/div><\/div><\/div>';\nconst INFO=`<div class=\"info\"><div class=\"card cu\"><div class=\"k\">客戶名稱<\/div><div class=\"big\">${e(H.cname)}<\/div><div class=\"k\">聯絡人<\/div><div>${e(H.contact)}<\/div><div class=\"k\">電話<\/div><div>${e(H.tel)}<\/div><\/div>`+\n  `<div class=\"card\"><div class=\"k\">報價單號<\/div><div class=\"b\">${H.doc?e(H.doc):'—'}<\/div><div class=\"k\">報價日期<\/div><div>${roc}<\/div><div class=\"k\">業務人員<\/div><div>${e(H.salesName)}<\/div><div class=\"k\">付款方式<\/div><div>${e(H.pay)}<\/div><\/div><\/div>`;\nconst notes=(Q.remark?[Q.remark]:[]);\nconst END='<div class=\"end\"><div class=\"sum\"><div class=\"notes\">'+(notes.length?'<h3>備註<\/h3><ol>'+notes.map(x=>'<li>'+e(x)+'<\/li>').join('')+'<\/ol>':'')+'<\/div><table class=\"tot\">'+\n  `<tr><td>總數量<\/td><td class=\"r\">${f(H.qty)}<\/td><\/tr><tr><td>未稅金額<\/td><td class=\"r\">${f(H.amount)}<\/td><\/tr><tr><td>營業稅 5%<\/td><td class=\"r\">${f(H.tax)}<\/td><\/tr>`+\n  `<tr class=\"g\"><td>含稅總計<\/td><td class=\"r\">NT$ ${f(H.amount+H.tax)}<\/td><\/tr><\/table><\/div>`+\n  '<div class=\"sign\"><div class=\"terms\">本報價單經客戶簽章確認後，效力形同契約書，收訂金或全額且中途不得取消，出貨後除瑕疵品外不得退換。<\/div><div class=\"box\">客戶確認簽章<div class=\"ln\">簽章／日期<\/div><\/div><div class=\"box\">公司發票章<img src=\"/stamp.png\"><\/div><\/div><\/div>';\nconst FL=(H.doc?e(H.doc):'報價單')+'　'+e(H.cname);\n\n// ---- 各版面的一列 ----\nfunction rowList(l,g){const zero=!(l.qty||l.price);return `<tr class=\"${g}\"><td class=\"c n\">${+l.seq}<\/td><td class=\"pid\">${e(l.sku)}<\/td><td class=\"nm\">${e(l.nm)}<\/td>`+\n  `<td class=\"r\">${zero?'—':f(l.qty)}<\/td><td class=\"c\">${e(l.unit)}<\/td><td class=\"r\">${zero?'—':f(l.price)}<\/td><td class=\"r b\">${zero?'—':f(l.amt)}<\/td><td class=\"rm\">${e(noteOf(l))}<\/td><\/tr>`}\nfunction rowCard(l){const p=pts(l).slice(0,4);\n  const i0=L.indexOf(l),m0=ims(l)[0];\n  return [`<div class=\"ci\"><div class=\"im${ims(l).length?'':' no'}\"${m0!=null?` draggable=\"true\" data-i=\"${i0}\" data-n=\"${m0}\"`:''}>${img(l)||'（無圖）'}<\/div>\n    <div><div class=\"nm\"><span class=\"no\">${+l.seq}<\/span>${e(l.nm)}<\/div><div class=\"sk\">品號 ${e(l.sku)}<\/div>\n      ${p.length?'<ul>'+p.map(x=>'<li>'+e(x)+'<\/li>').join('')+'<\/ul>':''}\n      ${l.url?`<a class=\"lk\" href=\"${e(l.url)}\">${qr(l.url)}<span>手機掃描看商品介紹<br>${e(shortUrl(l.url))}<\/span><\/a>`:''}<\/div>\n    <div class=\"pr\">數量 ${f(l.qty)} ${e(l.unit)}<br>單價(${lab}) ${f(l.price)}<b>${f(l.amt)}<\/b>${noteOf(l)?'<div class=\"cs\">客人編號 '+e(noteOf(l))+'<\/div>':''}<\/div><\/div>`,...extraRows(l)].map((h,k)=>typeof h==='string'?{h,it:L.indexOf(l),main:true}:h)}\nfunction rowGrid(l){const p=pts(l).slice(0,4);\n  const i0=L.indexOf(l),m0=ims(l)[0];\n  return [`<div class=\"gi\"><div class=\"im\"${m0!=null?` draggable=\"true\" data-i=\"${i0}\" data-n=\"${m0}\"`:''}>${img(l)||'<span style=\"color:#c5ccd3;font-size:8pt\">（無圖）<\/span>'}<\/div><div><div class=\"nm\"><span class=\"no\">${+l.seq}<\/span>${e(l.nm)}<\/div><div class=\"sk\">品號 ${e(l.sku)}<\/div>\n    ${p.length?'<ul>'+p.map(x=>'<li>'+e(x)+'<\/li>').join('')+'<\/ul>':''}${l.url?`<a class=\"lk\" href=\"${e(l.url)}\">${qr(l.url)}<span>手機掃描看商品介紹<br>${e(shortUrl(l.url))}<\/span><\/a>`:''}<\/div><\/div>`,...extraRows(l)].map(h=>typeof h==='string'?{h,it:L.indexOf(l),main:true}:h)}\n\n// ---- 分頁：一列一列放，放不下就換頁 ----\nconst root=document.getElementById('root');\nfunction newPage(first,kind){const pg=document.createElement('div');pg.className='page';\n  let box='';\n  if(kind==='list')box='<table class=\"it\"><thead><tr><th class=\"c\" style=\"width:10mm\">序號<\/th><th style=\"width:23mm\">品號<\/th><th>品名／規格<\/th><th class=\"r\" style=\"width:10mm\">數量<\/th><th class=\"c\" style=\"width:11mm;white-space:nowrap\">單位<\/th>'+\n    `<th class=\"r\" style=\"width:18mm\">單價(${lab})<\/th><th class=\"r\" style=\"width:20mm\">金額(${lab})<\/th><th style=\"width:22mm\">備註<\/th><\/tr><\/thead><tbody class=\"ct\"><\/tbody><\/table>`;\n  else if(kind==='card')box=`<div class=\"hd2\"><span>商品圖<\/span><span>品名／介紹<\/span><span style=\"text-align:right\">數量／單價／金額(${lab})<\/span><\/div><div class=\"list ct\"><\/div>`;\n  else box=`<div class=\"cat-t\">附件：商品圖片與介紹${H.doc?'（'+e(H.doc)+'）':''}　<span style=\"font-size:8pt;font-weight:400;color:#7b8794\">編號對應報價單序號<\/span><\/div><div class=\"cat ct\"><\/div>`;\n  pg.innerHTML=(first?HEAD+INFO:HEAD)+'<div class=\"body\">'+box+'<\/div><div class=\"pf\"><span>'+FL+'<\/span><span class=\"pn\"><\/span><\/div>';\n  root.appendChild(pg);return pg;}\n// 圖框照圖片比例：寬圖不留上下空白；放不下時可壓到最矮 MINH 補滿這頁\nconst MM=3.7795,CAPH={S:50,M:72,L:150},MINH={S:32,M:42,L:60},ASP={};\nconst szOf=f=>['S','M','L'].find(k=>f.classList.contains(k))||'M';\nfunction shape(el,lim){el.querySelectorAll('.exr figure').forEach(f=>{const z=szOf(f),ph=f.querySelector('.ph'),im=ph.querySelector('img');\n  const w=ph.getBoundingClientRect().width/MM-1,a=ASP[im.getAttribute('src')]||0.75;\n  ph.style.height=Math.max(12,Math.min(CAPH[z],w*a,lim)).toFixed(1)+'mm'})}\nconst fits=pg=>{const b=pg.querySelector('.body');return b.scrollHeight<=b.clientHeight+1;};\nconst cont=pg=>pg.querySelector('.body').insertAdjacentHTML('beforeend','<div class=\"cont\">續下頁 →<\/div>');\nfunction flow(rows,kind,first,withEnd){\n  // 合計簽章區放不下時：表格版帶最後 1 列過去（不讓最後一頁只有合計）；圖文版一列很高，帶過去會空一大塊，所以合計自己換頁\n  let pg=newPage(first,kind),ct=pg.querySelector('.ct');\n  for(const r of rows){ct.insertAdjacentHTML('beforeend',r);if(fits(pg))continue;\n    const moved=[ct.lastElementChild];moved[0].remove();cont(pg);\n    while(!fits(pg)&&ct.children.length>1){const x=ct.lastElementChild;x.remove();moved.unshift(x);}\n    pg=newPage(false,kind);ct=pg.querySelector('.ct');moved.forEach(x=>ct.appendChild(x));}\n  if(withEnd){pg.querySelector('.body').insertAdjacentHTML('beforeend',END);\n    if(!fits(pg)){pg.querySelector('.end').remove();const last=newPage(false,kind),c2=last.querySelector('.ct');\n      if(kind==='list'){for(let k=0;k<1&&ct.children.length>1;k++){c2.insertBefore(ct.lastElementChild,c2.firstChild);}}\n      else{const h=last.querySelector('.hd2');if(h)h.remove();}\n      cont(pg);last.querySelector('.body').insertAdjacentHTML('beforeend',END);}}\n}\n// 浮動排版（圖文版、圖錄）：放不下的那一排先壓矮再試；還是放不下，就讓後面放得下的列先補空位，那排移到下一頁\n// 規則：商品的順序不變；圖一定排在自己商品的後面\nfunction flowFloat(rows,kind,first,withEnd){\n  let pg=newPage(first,kind),ct=pg.querySelector('.ct');const placed=new Set(),q=rows.slice();\n  const tryPut=r=>{ct.insertAdjacentHTML('beforeend',r.h);const el=ct.lastElementChild;shape(el,1e9);if(fits(pg))return true;\n    const phs=[...el.querySelectorAll('.exr .ph')];\n    if(!r.main&&phs.length){const b=pg.querySelector('.body'),over=(b.scrollHeight-b.clientHeight)/MM+1;\n      const cur=Math.max(...phs.map(x=>x.getBoundingClientRect().height/MM)),lim=cur-over;\n      const ok=phs.every(x=>{const z=szOf(x.parentNode);return Math.min(lim,x.getBoundingClientRect().height/MM)>=MINH[z]});\n      if(ok){shape(el,lim);if(fits(pg))return true}}\n    el.remove();return false};\n  while(q.length){\n    if(tryPut(q[0])){const r=q.shift();if(r.main)placed.add(r.it);continue}\n    let done=false;\n    for(let j=1;j<q.length&&j<10;j++){const r=q[j];\n      const ok=r.main?q.slice(0,j).every(x=>!x.main):placed.has(r.it);\n      if(ok&&tryPut(r)){q.splice(j,1);if(r.main)placed.add(r.it);done=true;break}}\n    if(done)continue;\n    if(!ct.children.length){ct.insertAdjacentHTML('beforeend',q[0].h);const r=q.shift();if(r.main)placed.add(r.it);continue}  // 一列比整頁還高：照放\n    cont(pg);pg=newPage(false,kind);ct=pg.querySelector('.ct');\n  }\n  if(withEnd){pg.querySelector('.body').insertAdjacentHTML('beforeend',END);\n    if(!fits(pg)){const lr=ct.lastElementChild,phs=lr?[...lr.querySelectorAll('.exr .ph')]:[];  // 最後一排圖壓矮一點，合計簽章就不用自己一頁\n      if(phs.length){const b=pg.querySelector('.body'),over=(b.scrollHeight-b.clientHeight)/MM+1,hs=phs.map(x=>x.getBoundingClientRect().height/MM),lim=Math.max(...hs)-over;\n        if(phs.every((x,k)=>Math.min(lim,hs[k])>=MINH[szOf(x.parentNode)])){const keep=phs.map(x=>x.style.height);shape(lr,lim);if(!fits(pg))phs.forEach((x,k)=>x.style.height=keep[k])}}}\n    if(!fits(pg)){pg.querySelector('.end').remove();const last=newPage(false,kind);const h=last.querySelector('.hd2');if(h)h.remove();\n      cont(pg);last.querySelector('.body').insertAdjacentHTML('beforeend',END);}}\n}\nfunction build(){\n  root.innerHTML='';\n  if(sel.value==='card'){flowFloat(L.flatMap(l=>(l.qty||l.price)?rowCard(l):[]),'card',true,true)}\n  else{let prev=null;\n    flow(L.map(l=>{const no=(String(l.note||'').match(/^\\s*(\\d+)/)||[])[1]||'';const g=(no&&no!==prev)?'g1':'';prev=no||prev;return rowList(l,g)}),'list',true,true);\n    const withPic=items.filter(l=>ims(l).length||pts(l).length||l.url);\n    if(withPic.length)flowFloat(withPic.flatMap(rowGrid),'grid',false,false);}\n  const ps=[...document.querySelectorAll('.page')];\n  ps.forEach((p,i)=>p.querySelector('.pn').textContent='第 '+(i+1)+' / '+ps.length+' 頁');\n  document.body.dataset.ready=ps.length;\n}\nconst imgsReady=()=>Promise.all(L.flatMap(l=>ims(l).map(n=>src(l,n))).map(u=>new Promise(r=>{const im=new Image();im.onload=()=>{if(im.naturalWidth)ASP[u]=im.naturalHeight/im.naturalWidth;r()};im.onerror=r;im.src=u})));\nPromise.all([document.fonts?document.fonts.ready:null,imgsReady()]).then(build);\n";
+window.__API = "https://script.google.com/macros/s/AKfycbz3XQGtfz6lIGDEVdSbqMLrumY4WBMGOtBYcu_LBImI_JHr3cGsYA-cQ5xecHxVISsO/exec";
+// ===== 手機版接頭（線23｜報價程式）：把電腦版畫面的 /api/... 換成 Apps Script＋手機上的商品資料 =====
+window.__PHONE = true;
+// 手機上看不到主控台：程式錯誤直接顯示在頁面最上面
+window.addEventListener('error', e => { try { errBar(e.message + '（第 ' + e.lineno + ' 行）'); } catch (x) {} });
+window.addEventListener('unhandledrejection', e => { try { errBar((e.reason && e.reason.message) || e.reason); } catch (x) {} });
+const __ME = null, __EXEC = '';
+// 登入：每位主管一組登入碼，第一次輸入後這支手機記住通行證（不用 Google 帳號）
+const TOKEN_KEY = 'tanjun-quote-token';
+const getTok = () => { try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } };
+// GitHub 版：window.__API＝Apps Script 網址，用 POST 呼叫、不帶 Google 帳號（credentials: 'omit'）
+async function ghCall(name, arg) {
+  let r;
+  try { r = await fetch(window.__API, { method: 'POST', body: JSON.stringify({ fn: name, arg: arg == null ? null : arg, token: getTok() }), credentials: 'omit', redirect: 'follow' }); }
+  catch (e) { throw new Error('連不上雲端（網路不穩？）'); }
+  const s = await r.text(); let j; try { j = JSON.parse(s); } catch (e) { throw new Error('雲端回應看不懂'); }
+  if (!j.ok) throw new Error(j.error || '錯誤'); return j;
+}
+function gsRaw(name, arg) {
+  if (window.__API) return ghCall(name, arg);
+  return new Promise((res, rej) => google.script.run
+    .withSuccessHandler(s => { let j; try { j = JSON.parse(s); } catch (e) { return rej(new Error('雲端回應看不懂')); } j.ok ? res(j) : rej(new Error(j.error || '錯誤')); })
+    .withFailureHandler(e => rej(new Error((e && e.message) || String(e))))
+    .call(name, arg == null ? '' : JSON.stringify(arg), getTok()));
+}
+let LOGINP = null;
+function askLogin(msg) {
+  if (LOGINP) return LOGINP;
+  LOGINP = new Promise(done => {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(20,24,30,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+    d.innerHTML = '<form style="background:#fff;border-radius:14px;padding:22px;max-width:340px;width:100%;font:15px/1.5 sans-serif"><b style="font-size:18px">天掌報價</b><p style="color:#555;margin:6px 0 12px">請輸入您的登入碼（8 位數字）。這支手機登入一次就會記住。</p><input id="pinIn" inputmode="numeric" autocomplete="one-time-code" style="width:100%;font-size:22px;letter-spacing:4px;padding:10px;border:1px solid #ccc;border-radius:8px;box-sizing:border-box"><div id="pinErr" style="color:#b4232a;min-height:22px;margin-top:6px"></div><button style="width:100%;padding:12px;font-size:16px;background:#b8232f;color:#fff;border:0;border-radius:8px">登入</button></form>';
+    document.body.appendChild(d);
+    const f = d.querySelector('form'), inp = d.querySelector('#pinIn'), err = d.querySelector('#pinErr'), btn = d.querySelector('button');
+    if (msg) err.textContent = msg;
+    setTimeout(() => inp.focus(), 50);
+    f.onsubmit = async ev => {
+      ev.preventDefault(); btn.disabled = true; btn.textContent = '登入中…'; err.textContent = '';
+      try { const j = await gsRaw('login', { pin: inp.value }); try { localStorage.setItem(TOKEN_KEY, j.token); } catch (e) {} d.remove(); LOGINP = null; done(j.me); }
+      catch (e) { err.textContent = e.message; btn.disabled = false; btn.textContent = '登入'; }
+    };
+  });
+  return LOGINP;
+}
+async function gs(name, arg) {
+  if (!getTok()) await askLogin();
+  try { return await gsRaw(name, arg); }
+  catch (e) { if (e.message !== 'NEED_LOGIN') throw e; try { localStorage.removeItem(TOKEN_KEY); } catch (x) {} await askLogin('登入已失效，請重新輸入登入碼'); return gsRaw(name, arg); }
+}
+
+
+const __fetch2 = window.fetch.bind(window);
+window.fetch = async (path, opt) => {
+  if (path !== '/api/quote') return __fetch2(path, opt);
+  let j; try { j = await gs('quote', { erp: JSON.parse(opt.body), preview: JSON.parse(localStorage.getItem('tanjun-quote-preview') || 'null') }); } catch (e) { j = { ok: false, error: e.message }; }
+  return { ok: true, json: async () => j };
+};
+// 公司發票章圖不放公開網站：登入後才從雲端拿，拿到再開始畫報價單
+(async () => {
+  let st = ''; try { st = (await gs('stamp')).src || ''; } catch (e) {}
+  const s = document.createElement('script'); s.text = MAIN.split('"/stamp.png"').join(JSON.stringify(st)); document.body.appendChild(s);
+})();
+
+</script>
+</body>
+</html>
