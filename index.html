@@ -62,6 +62,12 @@ header {
 .brand .date { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 .backtown { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent); background: var(--surface); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
 .backtown[hidden] { display: none; }
+/* 電腦打開時右上角放手機查價的 QR Code（手機不顯示） */
+.phoneqr { position: fixed; top: 16px; right: 16px; z-index: 6; width: 168px; padding: 12px 12px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: center; font-size: 0.85rem; color: var(--fg); }
+.phoneqr[hidden] { display: none; }
+.phoneqr svg { display: block; width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 6px; }
+.phoneqr b { display: block; margin-top: 8px; }
+.phoneqr span { color: var(--muted); font-size: 0.78rem; }
 
 form.scan { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .fields { display: grid; gap: 8px; }
@@ -233,6 +239,23 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
         } catch (e) {}
       })();
     </script>
+    <aside class="phoneqr" id="phoneQr" hidden>
+      <svg viewBox="0 0 29 29" role="img" aria-label="手機查價網頁 QR Code" shape-rendering="crispEdges"><path fill="#000" d="M0 0h7v1h-7zM9 0h2v1h-2zM14 0h1v1h-1zM17 0h3v1h-3zM22 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM11 1h3v1h-3zM17 1h1v1h-1zM19 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM9 2h2v1h-2zM12 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM22 2h1v1h-1zM24 2h3v1h-3zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM10 3h1v1h-1zM13 3h1v1h-1zM18 3h3v1h-3zM22 3h1v1h-1zM24 3h3v1h-3zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h4v1h-4zM16 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h3v1h-3zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM11 5h2v1h-2zM14 5h7v1h-7zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h7v1h-7zM9 7h1v1h-1zM11 7h1v1h-1zM16 7h4v1h-4zM0 8h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM9 8h4v1h-4zM15 8h3v1h-3zM19 8h2v1h-2zM24 8h1v1h-1zM27 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM10 9h2v1h-2zM13 9h1v1h-1zM17 9h1v1h-1zM20 9h1v1h-1zM22 9h1v1h-1zM25 9h1v1h-1zM28 9h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM11 10h2v1h-2zM14 10h1v1h-1zM17 10h2v1h-2zM21 10h2v1h-2zM26 10h3v1h-3zM0 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM9 11h1v1h-1zM12 11h6v1h-6zM20 11h1v1h-1zM23 11h2v1h-2zM27 11h1v1h-1zM0 12h1v1h-1zM5 12h2v1h-2zM9 12h3v1h-3zM14 12h1v1h-1zM16 12h3v1h-3zM20 12h3v1h-3zM25 12h1v1h-1zM27 12h2v1h-2zM0 13h3v1h-3zM5 13h1v1h-1zM7 13h1v1h-1zM9 13h2v1h-2zM14 13h1v1h-1zM16 13h1v1h-1zM20 13h3v1h-3zM25 13h1v1h-1zM28 13h1v1h-1zM2 14h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM10 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM25 14h1v1h-1zM27 14h2v1h-2zM0 15h3v1h-3zM4 15h1v1h-1zM8 15h1v1h-1zM10 15h2v1h-2zM17 15h1v1h-1zM20 15h3v1h-3zM24 15h2v1h-2zM27 15h1v1h-1zM1 16h3v1h-3zM5 16h2v1h-2zM10 16h1v1h-1zM16 16h2v1h-2zM19 16h4v1h-4zM25 16h1v1h-1zM27 16h2v1h-2zM2 17h1v1h-1zM10 17h1v1h-1zM13 17h1v1h-1zM16 17h1v1h-1zM22 17h1v1h-1zM25 17h2v1h-2zM28 17h1v1h-1zM0 18h1v1h-1zM3 18h1v1h-1zM5 18h3v1h-3zM9 18h2v1h-2zM14 18h1v1h-1zM18 18h1v1h-1zM20 18h5v1h-5zM27 18h2v1h-2zM1 19h3v1h-3zM7 19h5v1h-5zM13 19h3v1h-3zM17 19h5v1h-5zM23 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM6 20h3v1h-3zM10 20h2v1h-2zM14 20h4v1h-4zM19 20h6v1h-6zM8 21h3v1h-3zM14 21h1v1h-1zM16 21h1v1h-1zM19 21h2v1h-2zM24 21h1v1h-1zM26 21h3v1h-3zM0 22h7v1h-7zM9 22h2v1h-2zM13 22h1v1h-1zM16 22h2v1h-2zM19 22h2v1h-2zM22 22h1v1h-1zM24 22h2v1h-2zM27 22h2v1h-2zM0 23h1v1h-1zM6 23h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM17 23h2v1h-2zM20 23h1v1h-1zM24 23h2v1h-2zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h3v1h-3zM6 24h1v1h-1zM8 24h4v1h-4zM17 24h2v1h-2zM20 24h5v1h-5zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h3v1h-3zM6 25h1v1h-1zM9 25h1v1h-1zM13 25h1v1h-1zM16 25h1v1h-1zM20 25h1v1h-1zM23 25h2v1h-2zM26 25h3v1h-3zM0 26h1v1h-1zM2 26h3v1h-3zM6 26h1v1h-1zM8 26h4v1h-4zM13 26h2v1h-2zM16 26h2v1h-2zM19 26h1v1h-1zM23 26h3v1h-3zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM14 27h2v1h-2zM17 27h4v1h-4zM22 27h2v1h-2zM27 27h1v1h-1zM0 28h7v1h-7zM8 28h2v1h-2zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM19 28h3v1h-3zM23 28h3v1h-3zM27 28h2v1h-2z"/></svg>
+      <b>手機掃這裡開查價</b>
+      <span>tanjuntool.github.io/price</span>
+    </aside>
+    <script>
+      // 電腦打開（滑鼠操作、畫面夠寬，或從門市小鎮進來）才顯示手機查價 QR Code；手機不顯示
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          var pc = q.get('from') === 'town' || (matchMedia('(pointer: fine)').matches && !matchMedia('(any-pointer: coarse)').matches);
+          var el = document.getElementById('phoneQr');
+          var fit = function () { el.hidden = !(pc && innerWidth >= 900); };
+          fit(); addEventListener('resize', fit);
+        } catch (e) {}
+      })();
+    </script>
     <div class="brand">
       <h1>天掌門市查價</h1>
       <span class="date" id="dataDate">價格資料載入中</span>
@@ -269,16 +292,16 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     </div>
     <label class="btn photo" for="photo">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
-      拍條碼照片辨識
+      從相簿選條碼照片
     </label>
-    <input id="photo" type="file" accept="image/*" capture="environment">
+    <input id="photo" type="file" accept="image/*">
     <div id="status" role="status" aria-live="polite"></div>
 
   <main id="result">
     <div class="empty">
       <div><b>條碼槍</b>：游標停在「品號／條碼」框，直接掃。</div>
       <div id="camHint" hidden><b>手機鏡頭</b>：按「開鏡頭掃描」，條碼或 QR Code 對進黃框就自動查，不用拍照。</div>
-      <div><b>手機</b>：按「拍條碼照片辨識」，對準條碼拍一張。</div>
+      <div><b>手機相簿</b>：按「從相簿選條碼照片」，選一張拍到條碼的照片。</div>
       <div><b>沒有條碼</b>：在「品名關鍵字」輸入幾個字，例如「得偉 電池」。品號帶「-」的（例如 2010703-1）也從這裡查。</div>
     </div>
   </main>
@@ -924,7 +947,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     try {
       const img = await loadImage(f);
       const code = await decode(img);
-      if (!code) { setStatus('照片裡找不到條碼。請靠近一點、讓條碼橫躺在畫面中間、避開反光再拍一次。', true); return; }
+      if (!code) { setStatus('照片裡找不到條碼。請換一張條碼拍得近一點、清楚、沒有反光的照片。', true); return; }
       $('q').value = code;
       lookup(code);
     } catch (err) {
@@ -954,7 +977,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       });
     } catch (e) {
       camStream = null;
-      setStatus('鏡頭開不起來（' + (e.name === 'NotAllowedError' ? '沒有允許使用相機，請到瀏覽器設定允許' : (e.name || '錯誤')) + '）。可以先用「拍條碼照片辨識」。', true);
+      setStatus('鏡頭開不起來（' + (e.name === 'NotAllowedError' ? '沒有允許使用相機，請到瀏覽器設定允許' : (e.name || '錯誤')) + '）。可以先用「從相簿選條碼照片」。', true);
       return;
     }
     const v = $('cam');
@@ -1011,14 +1034,16 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       aim.classList.add('hit'); setTimeout(() => aim.classList.remove('hit'), 600);
       try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
       code = String(code).trim();
+      stopCam();   // 辨識到就把鏡頭收起來（老闆 11/12）；查不到也收，要再掃就再按「開鏡頭掃描」
       if (/^https?:\/\//i.test(code)) {
         setStatus('掃到的是網址，不是品號：' + code.slice(0, 60) + (code.length > 60 ? '…' : ''), true);
       } else {
         showTab('main');
         $('q').value = code;
         lookup(code);
-        window.scrollTo({ top: 0 });   // 鏡頭在最上面，查到的價格卡緊接在下面
+        window.scrollTo({ top: 0 });
       }
+      return;
     }
     camTimer = setTimeout(scanLoop, code ? 900 : 180);
   }
