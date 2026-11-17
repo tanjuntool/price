@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>天掌 進貨分析</title>
+<style>body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:560px;margin:40px auto;padding:0 16px;line-height:1.7;color:#222}a{color:#1a56db}.mut{color:#777;font-size:13px}</style></head>
+<body>
+<h2>📥 天掌 進貨分析</h2>
+<p id="m">正在打開這台電腦上的「天掌 進貨分析」…</p>
+<p id="h" style="display:none">打不開的話：<br>・這台電腦還沒裝「天掌 進貨分析」：到門市小鎮按「📥 進貨分析」會自動安裝<br>・用手機開的：手機打不開，請在公司電腦上點<br><a id="a" href="#">再試一次</a></p>
+<p class="mut">（這頁只負責轉到本機工具，不放任何資料。線24｜每日進貨分析）</p>
+<script>
+var d=(new URLSearchParams(location.search).get('date')||'').replace(/[^0-9]/g,'');
+var u='http://127.0.0.1:8752/'+(d.length===8?'?date='+d:'');
+document.getElementById('a').href=u;
+setTimeout(function(){document.getElementById('h').style.display='block';},2500);
+location.replace(u);
+</script>
+</body></html>
