@@ -62,8 +62,8 @@ header {
 .brand .date { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 .backtown { justify-self: start; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--accent); background: var(--surface); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
 .backtown[hidden] { display: none; }
-/* 電腦打開時右上角放手機查價的 QR Code（手機不顯示） */
-.phoneqr { position: fixed; top: 16px; right: 16px; z-index: 6; width: 168px; padding: 12px 12px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: center; font-size: 0.85rem; color: var(--fg); }
+/* 電腦打開時頁面最下面放手機查價的 QR Code（手機不顯示） */
+.phoneqr { justify-self: center; width: 168px; padding: 12px 12px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); text-align: center; font-size: 0.85rem; color: var(--fg); }
 .phoneqr[hidden] { display: none; }
 .phoneqr svg { display: block; width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 6px; }
 .phoneqr b { display: block; margin-top: 8px; }
@@ -150,13 +150,11 @@ button:focus-visible, .btn:focus-within, #q:focus-visible, #kw:focus-visible { o
 .row .p.none { font-family: var(--font-body); font-size: 0.85rem; color: var(--warn); font-weight: 500; }
 .more { padding: 10px 14px; color: var(--muted); font-size: 0.85rem; }
 
-.tabs { display: grid; grid-template-columns: 0.8fr 1.3fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
 .tab { border-radius: 0; background: transparent; color: var(--muted); font-weight: 700; padding: 10px 6px; font-size: 0.92rem; gap: 6px; }
 .tab .badge { display: inline-block; min-width: 1.4em; padding: 0 5px; border-radius: 999px; background: var(--tag); color: var(--tag-ink); font-size: 0.75rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .tab[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
 .pane { display: grid; gap: 16px; }
-#quickResult { scroll-margin-top: 120px; }
-.quick { display: grid; gap: 8px; }
 /* 各店庫存：價格下方一排小格，0 變淡、負數紅字；點一下設成「本店」會加框 */
 .stock { padding: 10px 18px 12px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
 .stock .cap { display: flex; justify-content: space-between; gap: 8px; font-size: 0.75rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
@@ -208,16 +206,6 @@ button:focus-visible, .btn:focus-within, #q:focus-visible, #kw:focus-visible { o
 .qtotal .big { font-family: var(--font-num); font-weight: 700; font-size: 2.4rem; line-height: 1; }
 .qactions { display: flex; gap: 8px; flex-wrap: wrap; }
 .qactions button { background: var(--surface); color: var(--warn); border: 1px solid var(--line); }
-.quick h2 { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; }
-.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
-.chip-btn {
-  display: grid; gap: 0; justify-items: start; text-align: left;
-  padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--surface); color: var(--fg); font-weight: 700; font-size: 0.95rem;
-}
-.chip-btn small { font-weight: 400; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-.chip-btn[aria-pressed="true"] { background: var(--tag); color: var(--tag-ink); border-color: var(--tag); }
-.chip-btn[aria-pressed="true"] small { color: var(--tag-ink); }
 .empty { color: var(--muted); font-size: 0.92rem; padding: 4px 2px; display: grid; gap: 6px; }
 .empty b { color: var(--fg); }
 footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
@@ -239,30 +227,12 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
         } catch (e) {}
       })();
     </script>
-    <aside class="phoneqr" id="phoneQr" hidden>
-      <svg viewBox="0 0 29 29" role="img" aria-label="手機查價網頁 QR Code" shape-rendering="crispEdges"><path fill="#000" d="M0 0h7v1h-7zM9 0h2v1h-2zM14 0h1v1h-1zM17 0h3v1h-3zM22 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM11 1h3v1h-3zM17 1h1v1h-1zM19 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM9 2h2v1h-2zM12 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM22 2h1v1h-1zM24 2h3v1h-3zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM10 3h1v1h-1zM13 3h1v1h-1zM18 3h3v1h-3zM22 3h1v1h-1zM24 3h3v1h-3zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h4v1h-4zM16 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h3v1h-3zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM11 5h2v1h-2zM14 5h7v1h-7zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h7v1h-7zM9 7h1v1h-1zM11 7h1v1h-1zM16 7h4v1h-4zM0 8h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM9 8h4v1h-4zM15 8h3v1h-3zM19 8h2v1h-2zM24 8h1v1h-1zM27 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM10 9h2v1h-2zM13 9h1v1h-1zM17 9h1v1h-1zM20 9h1v1h-1zM22 9h1v1h-1zM25 9h1v1h-1zM28 9h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM11 10h2v1h-2zM14 10h1v1h-1zM17 10h2v1h-2zM21 10h2v1h-2zM26 10h3v1h-3zM0 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM9 11h1v1h-1zM12 11h6v1h-6zM20 11h1v1h-1zM23 11h2v1h-2zM27 11h1v1h-1zM0 12h1v1h-1zM5 12h2v1h-2zM9 12h3v1h-3zM14 12h1v1h-1zM16 12h3v1h-3zM20 12h3v1h-3zM25 12h1v1h-1zM27 12h2v1h-2zM0 13h3v1h-3zM5 13h1v1h-1zM7 13h1v1h-1zM9 13h2v1h-2zM14 13h1v1h-1zM16 13h1v1h-1zM20 13h3v1h-3zM25 13h1v1h-1zM28 13h1v1h-1zM2 14h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM10 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM25 14h1v1h-1zM27 14h2v1h-2zM0 15h3v1h-3zM4 15h1v1h-1zM8 15h1v1h-1zM10 15h2v1h-2zM17 15h1v1h-1zM20 15h3v1h-3zM24 15h2v1h-2zM27 15h1v1h-1zM1 16h3v1h-3zM5 16h2v1h-2zM10 16h1v1h-1zM16 16h2v1h-2zM19 16h4v1h-4zM25 16h1v1h-1zM27 16h2v1h-2zM2 17h1v1h-1zM10 17h1v1h-1zM13 17h1v1h-1zM16 17h1v1h-1zM22 17h1v1h-1zM25 17h2v1h-2zM28 17h1v1h-1zM0 18h1v1h-1zM3 18h1v1h-1zM5 18h3v1h-3zM9 18h2v1h-2zM14 18h1v1h-1zM18 18h1v1h-1zM20 18h5v1h-5zM27 18h2v1h-2zM1 19h3v1h-3zM7 19h5v1h-5zM13 19h3v1h-3zM17 19h5v1h-5zM23 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM6 20h3v1h-3zM10 20h2v1h-2zM14 20h4v1h-4zM19 20h6v1h-6zM8 21h3v1h-3zM14 21h1v1h-1zM16 21h1v1h-1zM19 21h2v1h-2zM24 21h1v1h-1zM26 21h3v1h-3zM0 22h7v1h-7zM9 22h2v1h-2zM13 22h1v1h-1zM16 22h2v1h-2zM19 22h2v1h-2zM22 22h1v1h-1zM24 22h2v1h-2zM27 22h2v1h-2zM0 23h1v1h-1zM6 23h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM17 23h2v1h-2zM20 23h1v1h-1zM24 23h2v1h-2zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h3v1h-3zM6 24h1v1h-1zM8 24h4v1h-4zM17 24h2v1h-2zM20 24h5v1h-5zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h3v1h-3zM6 25h1v1h-1zM9 25h1v1h-1zM13 25h1v1h-1zM16 25h1v1h-1zM20 25h1v1h-1zM23 25h2v1h-2zM26 25h3v1h-3zM0 26h1v1h-1zM2 26h3v1h-3zM6 26h1v1h-1zM8 26h4v1h-4zM13 26h2v1h-2zM16 26h2v1h-2zM19 26h1v1h-1zM23 26h3v1h-3zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM14 27h2v1h-2zM17 27h4v1h-4zM22 27h2v1h-2zM27 27h1v1h-1zM0 28h7v1h-7zM8 28h2v1h-2zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM19 28h3v1h-3zM23 28h3v1h-3zM27 28h2v1h-2z"/></svg>
-      <b>手機掃這裡開查價</b>
-      <span>tanjuntool.github.io/price</span>
-    </aside>
-    <script>
-      // 電腦打開（滑鼠操作、畫面夠寬，或從門市小鎮進來）才顯示手機查價 QR Code；手機不顯示
-      (function () {
-        try {
-          var q = new URLSearchParams(location.search);
-          var pc = q.get('from') === 'town' || (matchMedia('(pointer: fine)').matches && !matchMedia('(any-pointer: coarse)').matches);
-          var el = document.getElementById('phoneQr');
-          var fit = function () { el.hidden = !(pc && innerWidth >= 900); };
-          fit(); addEventListener('resize', fit);
-        } catch (e) {}
-      })();
-    </script>
     <div class="brand">
       <h1>天掌門市查價</h1>
       <span class="date" id="dataDate">價格資料載入中</span>
     </div>
     <div class="tabs" role="tablist">
       <button type="button" class="tab" role="tab" id="tabMain" aria-selected="true" aria-controls="paneMain">查價</button>
-      <button type="button" class="tab" role="tab" id="tabQuick" aria-selected="false" aria-controls="paneQuick">農機展快速查詢</button>
       <button type="button" class="tab" role="tab" id="tabQuote" aria-selected="false" aria-controls="paneQuote">報價單 <span class="badge" id="qCount" hidden>0</span></button>
     </div>
   </header>
@@ -312,15 +282,6 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   </section>
   </section>
 
-  <section class="pane" id="paneQuick" role="tabpanel" aria-labelledby="tabQuick" hidden>
-    <div class="quick" id="quickBox">
-      <h2>農機展庫別目前有庫存的商品，按分類點一下</h2>
-      <div class="chips" id="chips"></div>
-      <div class="empty" id="quickEmpty">快速查詢按鍵還沒載入。</div>
-    </div>
-    <div id="quickResult"></div>
-  </section>
-
   <section class="pane quote" id="paneQuote" role="tabpanel" aria-labelledby="tabQuote" hidden>
     <div class="qhead">
       <div class="co">天掌五金　報價單</div>
@@ -348,6 +309,23 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   </section>
 
   <footer>零售價為 ERP 含稅零售價，每天同步一次。各店庫存每天更新一次，白天賣掉的不會馬上扣。實際結帳以 POS 為準。</footer>
+    <aside class="phoneqr" id="phoneQr" hidden>
+      <svg viewBox="0 0 29 29" role="img" aria-label="手機查價網頁 QR Code" shape-rendering="crispEdges"><path fill="#000" d="M0 0h7v1h-7zM9 0h2v1h-2zM14 0h1v1h-1zM17 0h3v1h-3zM22 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM8 1h1v1h-1zM11 1h3v1h-3zM17 1h1v1h-1zM19 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM9 2h2v1h-2zM12 2h1v1h-1zM15 2h1v1h-1zM18 2h1v1h-1zM22 2h1v1h-1zM24 2h3v1h-3zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM10 3h1v1h-1zM13 3h1v1h-1zM18 3h3v1h-3zM22 3h1v1h-1zM24 3h3v1h-3zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h4v1h-4zM16 4h1v1h-1zM19 4h1v1h-1zM22 4h1v1h-1zM24 4h3v1h-3zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM11 5h2v1h-2zM14 5h7v1h-7zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h7v1h-7zM9 7h1v1h-1zM11 7h1v1h-1zM16 7h4v1h-4zM0 8h1v1h-1zM2 8h1v1h-1zM4 8h1v1h-1zM6 8h1v1h-1zM9 8h4v1h-4zM15 8h3v1h-3zM19 8h2v1h-2zM24 8h1v1h-1zM27 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM10 9h2v1h-2zM13 9h1v1h-1zM17 9h1v1h-1zM20 9h1v1h-1zM22 9h1v1h-1zM25 9h1v1h-1zM28 9h1v1h-1zM3 10h1v1h-1zM6 10h1v1h-1zM11 10h2v1h-2zM14 10h1v1h-1zM17 10h2v1h-2zM21 10h2v1h-2zM26 10h3v1h-3zM0 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM9 11h1v1h-1zM12 11h6v1h-6zM20 11h1v1h-1zM23 11h2v1h-2zM27 11h1v1h-1zM0 12h1v1h-1zM5 12h2v1h-2zM9 12h3v1h-3zM14 12h1v1h-1zM16 12h3v1h-3zM20 12h3v1h-3zM25 12h1v1h-1zM27 12h2v1h-2zM0 13h3v1h-3zM5 13h1v1h-1zM7 13h1v1h-1zM9 13h2v1h-2zM14 13h1v1h-1zM16 13h1v1h-1zM20 13h3v1h-3zM25 13h1v1h-1zM28 13h1v1h-1zM2 14h1v1h-1zM4 14h1v1h-1zM6 14h1v1h-1zM10 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h2v1h-2zM25 14h1v1h-1zM27 14h2v1h-2zM0 15h3v1h-3zM4 15h1v1h-1zM8 15h1v1h-1zM10 15h2v1h-2zM17 15h1v1h-1zM20 15h3v1h-3zM24 15h2v1h-2zM27 15h1v1h-1zM1 16h3v1h-3zM5 16h2v1h-2zM10 16h1v1h-1zM16 16h2v1h-2zM19 16h4v1h-4zM25 16h1v1h-1zM27 16h2v1h-2zM2 17h1v1h-1zM10 17h1v1h-1zM13 17h1v1h-1zM16 17h1v1h-1zM22 17h1v1h-1zM25 17h2v1h-2zM28 17h1v1h-1zM0 18h1v1h-1zM3 18h1v1h-1zM5 18h3v1h-3zM9 18h2v1h-2zM14 18h1v1h-1zM18 18h1v1h-1zM20 18h5v1h-5zM27 18h2v1h-2zM1 19h3v1h-3zM7 19h5v1h-5zM13 19h3v1h-3zM17 19h5v1h-5zM23 19h1v1h-1zM25 19h1v1h-1zM27 19h1v1h-1zM0 20h1v1h-1zM2 20h1v1h-1zM6 20h3v1h-3zM10 20h2v1h-2zM14 20h4v1h-4zM19 20h6v1h-6zM8 21h3v1h-3zM14 21h1v1h-1zM16 21h1v1h-1zM19 21h2v1h-2zM24 21h1v1h-1zM26 21h3v1h-3zM0 22h7v1h-7zM9 22h2v1h-2zM13 22h1v1h-1zM16 22h2v1h-2zM19 22h2v1h-2zM22 22h1v1h-1zM24 22h2v1h-2zM27 22h2v1h-2zM0 23h1v1h-1zM6 23h1v1h-1zM10 23h1v1h-1zM12 23h1v1h-1zM17 23h2v1h-2zM20 23h1v1h-1zM24 23h2v1h-2zM28 23h1v1h-1zM0 24h1v1h-1zM2 24h3v1h-3zM6 24h1v1h-1zM8 24h4v1h-4zM17 24h2v1h-2zM20 24h5v1h-5zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h3v1h-3zM6 25h1v1h-1zM9 25h1v1h-1zM13 25h1v1h-1zM16 25h1v1h-1zM20 25h1v1h-1zM23 25h2v1h-2zM26 25h3v1h-3zM0 26h1v1h-1zM2 26h3v1h-3zM6 26h1v1h-1zM8 26h4v1h-4zM13 26h2v1h-2zM16 26h2v1h-2zM19 26h1v1h-1zM23 26h3v1h-3zM28 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM14 27h2v1h-2zM17 27h4v1h-4zM22 27h2v1h-2zM27 27h1v1h-1zM0 28h7v1h-7zM8 28h2v1h-2zM11 28h1v1h-1zM13 28h2v1h-2zM17 28h1v1h-1zM19 28h3v1h-3zM23 28h3v1h-3zM27 28h2v1h-2z"/></svg>
+      <b>手機掃這裡開查價</b>
+      <span>tanjuntool.github.io/price</span>
+    </aside>
+    <script>
+      // 電腦打開（滑鼠操作，或從門市小鎮進來）才在頁面最下面顯示手機查價 QR Code；手機不顯示
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search);
+          var pc = q.get('from') === 'town' || (matchMedia('(pointer: fine)').matches && !matchMedia('(any-pointer: coarse)').matches);
+          var el = document.getElementById('phoneQr');
+          var fit = function () { el.hidden = !pc; };
+          fit(); addEventListener('resize', fit);
+        } catch (e) {}
+      })();
+    </script>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -358,7 +336,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   const $ = (id) => document.getElementById(id);
   const items = new Map();      // 品號 -> [品號, 品名, 規格, 單位, 零售價, 停產旗標]
   const barcodes = new Map();   // 條碼 -> [品號...]
-  const quick = [];             // [按鍵名稱, [品號...]]，來源是 Google 試算表「查價快速鍵」
+  const quick = [];             // 資料檔「!」後面的快速鍵（農機展快速查詢 11/18 已拿掉，只讀進來不再使用）
   let list = [];                // 給關鍵字搜尋用
   let ready = false;
   // 各店庫存（stock.txt，來源 Google 試算表「庫存表」，只有數量）：品號 -> [田中, 溪湖, 彰化, 烏日, 豐原, 倉庫, 農機展, 網路]
@@ -455,7 +433,6 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     setStatus('已載入 ' + fmt(items.size) + ' 個品號，可以開始掃。');
     if (again) return;
     renderRecent();
-    renderQuick();
     if (!$('paneQuote').hidden) renderQuote();
     const pending = $('q').value.trim();
     if (pending) lookup(pending);
@@ -631,35 +608,10 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     box.appendChild(sec);
   }
 
-  // ---------- 快速查詢按鍵 ----------
-  function renderQuick() {
-    const box = $('chips'); box.innerHTML = '';
-    quick.forEach(([name, ids]) => {
-      const arr = ids.map(id => items.get(id.toUpperCase())).filter(Boolean);
-      if (!arr.length) return;
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'chip-btn'; b.setAttribute('aria-pressed', 'false');
-      const t = document.createElement('span'); t.textContent = name;
-      const n = document.createElement('small'); n.textContent = arr.length + ' 項';
-      b.append(t, n);
-      b.addEventListener('click', () => {
-        box.querySelectorAll('.chip-btn').forEach(x => x.setAttribute('aria-pressed', 'false'));
-        b.setAttribute('aria-pressed', 'true');
-        const sorted = arr.slice().sort((a, b2) => (a[1] || '').localeCompare(b2[1] || '', 'zh-Hant'));
-        showList(sorted, name + '（' + arr.length + ' 項）・點商品看大字價格', 400, $('quickResult'));
-        $('quickResult').scrollIntoView({ block: 'start', behavior: 'smooth' });
-      });
-      box.appendChild(b);
-    });
-    $('quickEmpty').hidden = box.children.length > 0;
-    if (!box.children.length) $('quickEmpty').textContent = '目前沒有設定快速查詢按鍵。';
-  }
-  function clearQuick() { document.querySelectorAll('#chips .chip-btn').forEach(x => x.setAttribute('aria-pressed', 'false')); }
-
   // ---------- 分頁 ----------
   function showTab(which) {
-    const panes = { main: 'paneMain', quick: 'paneQuick', quote: 'paneQuote' };
-    const tabs = { main: 'tabMain', quick: 'tabQuick', quote: 'tabQuote' };
+    const panes = { main: 'paneMain', quote: 'paneQuote' };
+    const tabs = { main: 'tabMain', quote: 'tabQuote' };
     if (!panes[which]) which = 'main';
     Object.keys(panes).forEach(k => {
       $(panes[k]).hidden = k !== which;
@@ -669,7 +621,6 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     try { localStorage.setItem('pc_tab', which); } catch (e) {}
   }
   $('tabMain').addEventListener('click', () => { showTab('main'); selectInput(); });
-  $('tabQuick').addEventListener('click', () => showTab('quick'));
   $('tabQuote').addEventListener('click', () => showTab('quote'));
 
   // ---------- 報價單（只存在這支手機）----------
@@ -836,7 +787,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   });
 
   updateBadge();
-  try { const t = localStorage.getItem('pc_tab'); if (t === 'quick' || t === 'quote') showTab(t); } catch (e) {}
+  try { const t = localStorage.getItem('pc_tab'); if (t === 'quote') showTab(t); } catch (e) {}
 
   // ---------- 最近查過（只存在這支手機）----------
   function getRecent() { try { return JSON.parse(localStorage.getItem('pc_recent') || '[]'); } catch (e) { return []; } }
