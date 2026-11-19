@@ -42,12 +42,12 @@ footer{text-align:center;color:#888;font-size:12px;padding:16px}
   </section>
 
   <section id="vNew" class="card hide">
-    <div class="cam" onclick="document.getElementById('cam').click()">📷 拍照（或選照片／PDF）<br><span class="mut">收據、發票、帳單；正反面可以多張</span></div>
+    <div class="cam" onclick="document.getElementById('cam').click()">📷 拍照（或選照片／PDF）<br><span class="mut">收據、發票、帳單；正反面可以多張，一張照片拍好幾張發票也可以</span></div>
     <input id="cam" type="file" accept="image/*,application/pdf" capture="environment" multiple class="hide" onchange="addShots(this.files);this.value=''">
     <div class="row" style="margin-top:6px"><button class="btn light" style="margin-top:0" onclick="document.getElementById('pick').click()">從相簿選</button></div>
     <input id="pick" type="file" accept="image/*,application/pdf" multiple class="hide" onchange="addShots(this.files);this.value=''">
     <div class="shots" id="shots"></div>
-    <label>金額（實付）</label><input id="amount" type="number" inputmode="decimal" placeholder="例如 1470">
+    <label>金額（可以不填，電腦會用 AI 讀照片）</label><input id="amount" type="number" inputmode="decimal" placeholder="不填也可以">
     <label>說明（買什麼、哪裡的費用）</label><textarea id="memo" placeholder="例如：烏日加油、11 月電話費、彰化影印紙"></textarea>
     <label>付款</label>
     <div class="seg" id="paySeg"><label class="on"><input type="radio" name="pay" value="paid" checked>已經付了</label><label><input type="radio" name="pay" value="later">還沒付（月結、開票）</label></div>
@@ -67,7 +67,7 @@ footer{text-align:center;color:#888;font-size:12px;padding:16px}
     <button class="btn amber" onclick="resend()">重送</button><button class="btn light" onclick="closeEdit()">取消</button>
   </section>
 </main>
-<footer>天掌五金 費用單 · 版本 2026-11-17a · <a href="#" onclick="logout();return false">登出</a> · <a href="#" onclick="show('vWho');return false">換人／換店</a></footer>
+<footer>天掌五金 費用單 · 版本 2026-11-19a · <a href="#" onclick="logout();return false">登出</a> · <a href="#" onclick="show('vWho');return false">換人／換店</a></footer>
 <script>
 const API = 'https://script.google.com/macros/s/AKfycbzIq-SIu14gDEQ_pf918YGzbpV_fIviKrYUwTuwfvuR7fw8MSFr6fMWOBDLkOI1-Xv3/exec';
 const $ = id => document.getElementById(id);
@@ -102,7 +102,7 @@ async function shrink(file) {
 async function addShots(files, which) { const arr = which === 'e' ? ESHOTS : SHOTS; for (const f of files) { try { arr.push(await shrink(f)) } catch (e) { alert('照片讀不到') } } drawShots(which) }
 function drawShots(which) { const arr = which === 'e' ? ESHOTS : SHOTS; $(which === 'e' ? 'eShots' : 'shots').innerHTML = arr.map((s, i) => `<div>${s.thumb ? `<img src="${s.thumb}">` : '<div class="cam" style="width:84px;height:84px;padding:20px 0">PDF</div>'}<a onclick="(${which === 'e' ? 'ESHOTS' : 'SHOTS'}).splice(${i},1);drawShots('${which || ''}')">✕</a></div>`).join('') }
 async function send() {
-  if (!SHOTS.length) { alert('請先拍照'); return } const amt = Number($('amount').value); if (!(amt > 0)) { alert('金額要填'); return }
+  if (!SHOTS.length) { alert('請先拍照'); return } const amt = $('amount').value === '' ? '' : Number($('amount').value); if (amt !== '' && !(amt > 0)) { alert('金額不對'); return }
   $('btnSend').disabled = true; msg('sendMsg', 'info', '上傳中…（照片多會久一點）');
   try { const j = await call('create', { who: ME.id, whoName: ME.name, store: ME.store, amount: amt, memo: $('memo').value, pay: document.querySelector('#paySeg input:checked').value, photos: SHOTS.map(s => ({ media: s.media, data: s.data })) });
     msg('sendMsg', 'ok', `已送出：${esc(j.id)}。會計打進 ERP 後，下面會看到 ERP 單號。`); SHOTS = []; drawShots(); $('amount').value = ''; $('memo').value = ''; loadMine();
@@ -111,7 +111,7 @@ async function send() {
 }
 async function loadMine() {
   try { const j = await call('mine', { who: $('scope').value === 'all' ? '' : ME.id });
-    $('docs').innerHTML = j.docs.map(d => `<div class="doc"><div class="row"><b class="num">$${Number(d.amount).toLocaleString()}</b><span style="text-align:right"><span class="st ${esc(d.status)}">${esc(d.status)}</span></span></div>
+    $('docs').innerHTML = j.docs.map(d => `<div class="doc"><div class="row"><b class="num">${d.amount ? "$" + Number(d.amount).toLocaleString() : "（金額待電腦讀）"}</b><span style="text-align:right"><span class="st ${esc(d.status)}">${esc(d.status)}</span></span></div>
       <div>${esc(d.memo || '（沒寫說明）')}</div><div class="mut">${esc(d.at.slice(5, 16))}・${esc(d.whoName)}・${esc(d.storeName)}・${esc(d.pay)}・照片 ${d.photos} 張・${esc(d.id)}</div>
       ${d.erpNo ? `<div>ERP：<b>${esc(d.erpNo)}</b></div>` : ''}${d.status === '退回' ? `<div class="msg bad">退回原因：${esc(d.msg)}</div><button class="btn amber" onclick='openEdit(${JSON.stringify(d)})'>改好重送</button>` : ''}
       ${['已送出', '退回'].includes(d.status) && d.who === ME.id ? `<button class="btn light" onclick="cancelDoc('${esc(d.id)}')">作廢這張</button>` : ''}</div>`).join('') || '<div class="mut">還沒有</div>';
