@@ -1,15 +1,19 @@
 <!doctype html>
 <html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>天掌 進貨分析</title>
-<style>body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:560px;margin:40px auto;padding:0 16px;line-height:1.7;color:#222}a{color:#1a56db}.mut{color:#777;font-size:13px}</style></head>
+<style>body{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;max-width:600px;margin:40px auto;padding:0 16px;line-height:1.8;color:#222}a{color:#1a56db}.btn{display:inline-block;padding:8px 16px;border-radius:6px;background:#1a56db;color:#fff;text-decoration:none;margin:4px 8px 4px 0}.btn.g{background:#eee;color:#222}.mut{color:#777;font-size:13px}b{color:#b42318}</style></head>
 <body>
 <h2>📥 天掌 進貨分析</h2>
-<p id="m">正在請這台電腦的「門市小鎮」打開進貨分析（這台沒裝會自動安裝）…</p>
-<p>打不開的話：<br>・停在門市小鎮畫面、沒有跳過去：小鎮是舊版，先按小鎮上的「更新」，再點一次連結<br>・出現「無法連上這個網站」：這台的門市小鎮沒開，桌面點「天掌 門市小鎮」，再點一次連結<br>・用手機開的：手機打不開，請在公司電腦上點<br><a id="a" href="#">再試一次</a></p>
-<p class="mut">（這頁只負責轉到本機工具，不放任何資料。線24｜每日進貨分析，v2）</p>
+<p>正在打開這台電腦上的「天掌 進貨分析」（沒裝會自動安裝，第一次約 10～30 秒，會開在新的分頁）。</p>
+<p>Chrome 如果問「要開啟 <b>天掌工具</b> 嗎？」：勾「一律允許」，再按「開啟」。</p>
+<p><a class="btn" id="a" href="#">再開一次</a><a class="btn g" id="b" href="#">改用門市小鎮打開</a></p>
+<p>都沒反應的話：這台還沒設定。點桌面「<b>天掌 門市小鎮</b>」一次（會自動設定好），再點一次群組裡的連結。<br>用手機開的：手機打不開，請在公司電腦上點。</p>
+<p class="mut">（這頁只負責轉給這台電腦，不放任何資料。線24｜每日進貨分析，v3）</p>
 <script>
 var d=(new URLSearchParams(location.search).get('date')||'').replace(/[^0-9]/g,'');
-var u='http://127.0.0.1:8745/?open=purchasereview&port=8752'+(d.length===8?'&date='+d:'');
-document.getElementById('a').href=u;
-setTimeout(function(){location.href=u;},1200);
+var q=d.length===8?'date='+d:'';
+var t='tanjun://open/purchasereview'+(q?'?'+q:'');
+document.getElementById('a').href=t;
+document.getElementById('b').href='http://127.0.0.1:8745/?open=purchasereview&port=8752'+(q?'&'+q:'');
+setTimeout(function(){location.href=t;},300);
 </script>
 </body></html>
