@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>天掌門市查價</title>
+<title>天掌門市查價 V15.7</title>
+<meta name="app-version" content="V15.7">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -86,7 +87,15 @@ button, .btn {
 button:focus-visible, .btn:focus-within, #q:focus-visible, #kw:focus-visible { outline: 3px solid var(--tag); outline-offset: 2px; }
 .btn.photo { width: 100%; background: var(--surface); color: var(--fg); border: 2px dashed var(--line); font-weight: 500; }
 .btn.photo svg { width: 22px; height: 22px; }
-#photo { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+#photo, #aiPhoto { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.photo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.photo-actions .btn.photo { padding: 10px 8px; font-size: 0.9rem; }
+.photo-actions svg { flex-shrink: 0; }
+.ai-hint, .ai-note { color: var(--muted); font-size: 0.82rem; overflow-wrap: anywhere; }
+.ai-hint { margin-top: -8px; }
+.ai-search { margin-top: 12px; width: 100%; overflow-wrap: anywhere; }
+.ai-search:disabled, #aiPhotoBtn:disabled, .photo-actions [aria-disabled="true"] { opacity: 0.45; filter: grayscale(1); cursor: wait; pointer-events: none; }
+.cam-on .photo-actions, .cam-on .ai-hint { display: none; }
 /* 鏡頭連續掃描（只有放在自己網址時才出現；claude.ai 上相機被擋） */
 .btn.cam { width: 100%; padding-block: 14px; font-size: 1.05rem; }
 .btn.cam svg { width: 22px; height: 22px; }
@@ -260,11 +269,16 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
       <div class="camhint">條碼或 QR Code 對進黃框，會自動查</div>
       <button type="button" class="camclose" id="camClose">關閉鏡頭 ✕</button>
     </div>
-    <label class="btn photo" for="photo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
-      從相簿選條碼照片
-    </label>
+    <div class="photo-actions">
+      <label class="btn photo" for="photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16 8v8"/></svg>
+        從相簿選條碼照片
+      </label>
+      <button type="button" class="btn photo" id="aiPhotoBtn">📷 拍商品照片給 AI 認</button>
+    </div>
     <input id="photo" type="file" accept="image/*">
+    <input id="aiPhoto" type="file" accept="image/*">
+    <div class="ai-hint">AI 一次約 NT$0.3，每月有上限。條碼照片找不到條碼時會自動請 AI 辨識。</div>
     <div id="status" role="status" aria-live="polite"></div>
 
   <main id="result">
@@ -361,6 +375,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   // 放在 claude.ai 時照舊讀同一個網址底下的 data.txt／stock.txt。
   const DATA_BASE = /\.github\.io$/.test(location.hostname)
     ? 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec' : '';
+  const AI_URL = 'https://script.google.com/macros/s/AKfycbz33eLfg_DCjkHWcCfpxM-XkTbHZfdwfL2dfshV9Wp63pfZQBXNg4hkl9x5Vsgz8tO8uw/exec';
   // 每次加上時間參數、不用快取：手機會記住 Google 的轉址，過一陣子轉址失效就變成 HTTP 404
   const src = (f) => DATA_BASE ? DATA_BASE + '?f=' + f + '&t=' + Date.now() : f + '.txt';
   // 抓資料：每次最多等 90 秒（Apps Script 偶爾要 30 秒以上才回），失敗自動再試 2 次；有回報下載進度，卡在哪一步看得出來
@@ -493,6 +508,7 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     if (found.length === 1) { showItem(found[0]); remember(found[0][0]); setStatus(''); }
     else if (found.length) { showList(found, '找到 ' + fmt(found.length) + ' 筆，點一下看價格'); setStatus(''); }
     else { $('result').innerHTML = ''; setStatus('品名找不到「' + q + '」。試試少打幾個字，或換個說法。', true); }
+    addAiSearch(q);
   }
 
   function selectInput() { if (camStream) return; const el = $('q'); el.focus({ preventScroll: true }); el.select(); }  // 鏡頭開著時不搶焦點，免得跳出鍵盤
@@ -607,6 +623,132 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
     if (arr.length > lim) { const m = document.createElement('div'); m.className = 'more'; m.textContent = '只列前 ' + lim + ' 筆，請多打幾個字縮小範圍。'; sec.appendChild(m); }
     box.appendChild(sec);
   }
+
+  // ---------- V15.7 AI 商品辨識（候選品號只取手機已載入的 ERP 價格資料）----------
+  let aiBusy = false, photoBusy = false, aiDeviceMemory = '';
+  const aiNorm = s => String(s || '').toUpperCase().replace(/[\s-]+/g, '');
+  const AI_BRANDS = {
+    BOSCH: ['博世'], '博世': ['BOSCH'], MAKITA: ['牧田'], '牧田': ['MAKITA'],
+    DEWALT: ['得偉'], '得偉': ['DEWALT'], MILWAUKEE: ['米沃奇', '美沃奇'],
+    '米沃奇': ['MILWAUKEE', '美沃奇'], '美沃奇': ['MILWAUKEE', '米沃奇'],
+    HIKOKI: ['日立'], '日立': ['HIKOKI'], KINGTONY: ['京達'], '京達': ['KINGTONY'],
+    STANLEY: ['史丹利'], '史丹利': ['STANLEY'], TAJIMA: ['田島'], '田島': ['TAJIMA'],
+    METABO: ['美達寶'], '美達寶': ['METABO']
+  };
+  function aiDevice() {
+    if (aiDeviceMemory) return aiDeviceMemory;
+    try { aiDeviceMemory = localStorage.getItem('pc_ai_dev') || ''; } catch (e) {}
+    if (!aiDeviceMemory) {
+      aiDeviceMemory = 'price-' + (window.crypto && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2));
+      try { localStorage.setItem('pc_ai_dev', aiDeviceMemory); } catch (e) {}
+    }
+    return aiDeviceMemory;
+  }
+  function syncAiButtons() {
+    const busy = aiBusy || photoBusy;
+    ['photo', 'aiPhoto', 'aiPhotoBtn'].forEach(id => { $(id).disabled = busy; });
+    document.querySelectorAll('.ai-search').forEach(b => { b.disabled = busy; });
+    document.querySelectorAll('.photo-actions .btn').forEach(b => b.setAttribute('aria-disabled', String(busy)));
+    $('result').setAttribute('aria-busy', String(aiBusy));
+  }
+  function addAiSearch(q) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ai-search';
+    b.textContent = '🤖 請 AI 找『' + q + '』';
+    b.disabled = aiBusy || photoBusy;
+    b.addEventListener('click', () => requestAi(q, ''));
+    $('result').appendChild(b);
+  }
+  function aiCandidates(recognized) {
+    const rows = list.map(([p, hay]) => ({ p, norm: aiNorm(hay) }));
+    const merged = new Map();
+    recognized.slice(0, 3).forEach((item, rank) => {
+      // 同線23 candidates：整組全中才加組分，型號組加權，長中文詞另以兩字組輔助。
+      const tokIx = new Map(), groups = [];
+      const ti = u => { if (!tokIx.has(u)) tokIx.set(u, tokIx.size); return tokIx.get(u); };
+      const addGroup = (raw, base, model) => {
+        const words = model ? [aiNorm(raw)] : String(raw).replace(/[，,;；/：:、。（）()「」]/g, ' ').split(/\s+/).map(aiNorm);
+        const ix = [...new Set(words.filter(u => u.length >= 2 || /\d/.test(u)).map(ti))];
+        if (ix.length && groups.length < 12) groups.push({ ix, base });
+      };
+      if (item.model) addGroup(item.model, 3, true);
+      for (const t of (Array.isArray(item.terms) ? item.terms : []).slice(0, 6)) if (t) addGroup(t, 1, false);
+      const toks = [...tokIx.keys()].slice(0, 24);
+      if (!toks.length) return;
+      const alt = toks.map(u => [u, ...(AI_BRANDS[u] || [])]);
+      const weights = toks.map(u => /[A-Z]/.test(u) && /\d/.test(u) ? 2 : 0.2);
+      const bi = new Set();
+      for (const k of toks) if (/^[一-鿿]{4,}$/.test(k)) for (let j = 0; j < k.length - 1; j++) bi.add(k.slice(j, j + 2));
+      const bigrams = [...bi].slice(0, 24);
+      for (const { p, norm } of rows) {
+        const hits = alt.map(a => a.some(u => norm.includes(u)));
+        let score = hits.reduce((n, hit, i) => n + (hit ? weights[i] : 0), 0);
+        for (const g of groups) if (g.ix.every(i => i < toks.length && hits[i])) score += g.base + g.ix.length;
+        for (const b of bigrams) if (norm.includes(b)) score += 0.3;
+        if (score < 1) continue;
+        const key = String(p[0]).toUpperCase(), old = merged.get(key);
+        if (!old || score > old.score) merged.set(key, { p, score, rank });
+      }
+    });
+    return [...merged.values()].sort((a, b) => b.score - a.score || a.rank - b.rank || a.p[0].localeCompare(b.p[0])).slice(0, 5).map(x => x.p);
+  }
+  function showAiResults(data) {
+    const recognized = (Array.isArray(data.items) ? data.items : []).filter(x => x && typeof x === 'object').slice(0, 3);
+    const names = recognized.map(x => [x.brand, x.model, x.name].filter(Boolean).join(' '));
+    const hits = aiCandidates(recognized);
+    showList(hits, 'AI 認為是：' + (names.join('／') || '照片或文字不夠清楚'), 5);
+    const note = document.createElement('div'); note.className = 'more ai-note';
+    const usd = Number(data.monthUsd), cap = Number(data.cap);
+    note.textContent = [data.note, '本月 AI 已用 US$' + (Number.isFinite(usd) ? usd.toFixed(2) : '0.00') + '／上限 US$' + (Number.isFinite(cap) ? cap : 10)].filter(Boolean).join('　');
+    const sec = $('result').querySelector('.list');
+    sec.querySelector('h2').after(note);
+    if (!hits.length) {
+      const empty = document.createElement('div'); empty.className = 'more';
+      empty.textContent = 'ERP 裡找不到相近的商品，可以改打關鍵字查';
+      sec.appendChild(empty);
+    }
+    setStatus(hits.length ? '找到 ' + hits.length + ' 個可能的品號，請點選確認商品。' : '');
+  }
+  async function requestAi(text, image, message) {
+    if (aiBusy) return;
+    if (!ready) { setStatus('價格資料還在載入，請稍等再使用 AI。', true); return; }
+    if (!text && !image) { setStatus('請輸入商品文字或選一張照片。', true); return; }
+    aiBusy = true; syncAiButtons();
+    setStatus(message || '請 AI 辨識商品…（約 5～15 秒）');
+    const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 90000);
+    try {
+      const response = await fetch(AI_URL, {
+        method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ f: 'ai', text: text || '', image: image || '', dev: aiDevice() }),
+        redirect: 'follow', credentials: 'omit', signal: ac.signal
+      });
+      if (!response.ok) { setStatus('AI 服務暫時有問題（代碼 ' + response.status + '）', true); return; }
+      let data;
+      try { data = await response.json(); }
+      catch (err) {
+        if (err.name === 'AbortError') throw err;
+        setStatus('AI 回應格式有問題，請稍後再試。', true); return;
+      }
+      if (!data || !data.ok) { setStatus(data && typeof data.error === 'string' ? data.error : 'AI 服務暫時有問題，請稍後再試。', true); return; }
+      showAiResults(data);
+    } catch (err) {
+      setStatus(err.name === 'AbortError' ? 'AI 查詢逾時（90 秒），請稍後再試。' : 'AI 查詢網路連線失敗，請確認網路後再試。', true);
+    } finally {
+      clearTimeout(timer); aiBusy = false; syncAiButtons();
+    }
+  }
+  function aiImageBase64(img) {
+    return toCanvas(img, 1280, false).toDataURL('image/jpeg', 0.8).split(',')[1];
+  }
+  $('aiPhotoBtn').addEventListener('click', () => { if (!aiBusy && !photoBusy) $('aiPhoto').click(); });
+  $('aiPhoto').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f || aiBusy || photoBusy) return;
+    photoBusy = true; syncAiButtons(); setStatus('準備商品照片…');
+    try { await requestAi('', aiImageBase64(await loadImage(f))); }
+    catch (err) { setStatus('照片讀不出來，請換一張照片再試。', true); }
+    finally { photoBusy = false; syncAiButtons(); }
+  });
 
   // ---------- 分頁 ----------
   function showTab(which) {
@@ -893,16 +1035,22 @@ footer { color: var(--muted); font-size: 0.78rem; text-align: center; }
   $('photo').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
-    if (!f) return;
+    if (!f || aiBusy || photoBusy) return;
+    photoBusy = true; syncAiButtons();
     setStatus('辨識中…');
     try {
       const img = await loadImage(f);
       const code = await decode(img);
-      if (!code) { setStatus('照片裡找不到條碼。請換一張條碼拍得近一點、清楚、沒有反光的照片。', true); return; }
+      if (!code) {
+        await requestAi('', aiImageBase64(img), '找不到條碼，請 AI 認這張照片…（約 5～15 秒）');
+        return;
+      }
       $('q').value = code;
       lookup(code);
     } catch (err) {
       setStatus('辨識失敗：' + err.message + '。可以改用手動輸入品號。', true);
+    } finally {
+      photoBusy = false; syncAiButtons();
     }
   });
 
