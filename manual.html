@@ -64,7 +64,6 @@ a { color: var(--accent); }
 <p><b>價格卡怎麼看</b></p>
 <ul>
 <li><b>各店庫存</b>：價格下方一排小格，是田中、溪湖、彰化、烏日、豐原、倉庫（農機展、網路有庫存才出現）。0 會變淡、負數是紅字。<b>每天更新一次</b>，白天賣掉的不會馬上扣</li>
-<li><b>停產</b>：品名下方有紅色「停產」標籤</li>
 <li><b>未設定售價</b>：ERP 沒設零售價，請問主管</li>
 <li><b>一個條碼對到好幾個品號</b>：會列出來，點一下選正確的</li>
 <li><b>最近查過</b>：價格卡下方留最近查過的商品，點一下重看</li>
@@ -179,7 +178,7 @@ a { color: var(--accent); }
 <table>
 <tr><th>項目</th><th>在哪裡／怎麼做</th></tr>
 <tr><td>價格、庫存更新</td><td>自動。Google Apps Script「天掌查價資料」（tanjun.tool）每 30 分鐘檢查一次：雲端「商品總表」（零售價）、「庫存表」（各庫別數量）有更新就重新產生</td></tr>
-<tr><td>停產名單、商品條碼</td><td>Google 試算表「查價網頁_固定資料」（tanjun.tool），不會自動更新，要更新在「線7｜查價報價網頁」對話請 Claude 從 ERP 撈。裡面的快速鍵是舊的農機展快速查詢用，網頁已不用</td></tr>
+<tr><td>商品條碼</td><td>Google 試算表「查價網頁_固定資料」（tanjun.tool），不會自動更新，要更新在「線7｜查價報價網頁」對話請 Claude 從 ERP 撈。裡面的停產、快速鍵已不使用（品名、規格、價格只跟著商品總表）</td></tr>
 <tr><td>網頁本身</td><td>GitHub <code>tanjuntool/price</code> 的 index.html（GitHub Pages）。網址永遠不變</td></tr>
 <tr><td>客人看的報價單頁</td><td>Google Apps Script「天掌報價單」（tanjun.tool）。更新只能用「管理部署作業 → 新版本」，不要用「新增部署作業」，不然網址會變</td></tr>
 <tr><td>原始碼與交接</td><td>NAS <code>07_IT設備與系統\ERP小幫手\查價網頁\</code>、<code>查價網頁_交接.md</code></td></tr>
